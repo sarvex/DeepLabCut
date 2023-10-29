@@ -34,15 +34,13 @@ def _check_for_updates():
     is_latest, latest_version = utils.is_latest_deeplabcut_version()
     is_latest_plugin, latest_plugin_version = misc.is_latest_version()
     if is_latest and is_latest_plugin:
-        msg = QtWidgets.QMessageBox(
-            text=f"DeepLabCut is up-to-date",
-        )
+        msg = QtWidgets.QMessageBox(text="DeepLabCut is up-to-date")
         msg.exec_()
     else:
         if not is_latest and is_latest_plugin:
             text = f"DeepLabCut {latest_version} available"
             command = "pip", "install", "-U", "deeplabcut"
-        elif not is_latest_plugin and is_latest:
+        elif is_latest:
             text = f"DeepLabCut labeling plugin {latest_plugin_version} available"
             command = "pip", "install", "-U", "napari-deeplabcut"
         else:
@@ -129,9 +127,9 @@ class MainWindow(QMainWindow):
             self.add_recent_filename(filename)
 
     def save_settings(self):
-        recent_files = []
-        for action in self.recentfiles_menu.actions()[::-1]:
-            recent_files.append(action.text())
+        recent_files = [
+            action.text() for action in self.recentfiles_menu.actions()[::-1]
+        ]
         self.settings.setValue("recent_files", recent_files)
 
     def add_recent_filename(self, filename):
@@ -168,10 +166,7 @@ class MainWindow(QMainWindow):
 
     @property
     def all_individuals(self) -> List:
-        if self.is_multianimal:
-            return self.cfg.get("individuals")
-        else:
-            return [""]
+        return self.cfg.get("individuals") if self.is_multianimal else [""]
 
     @property
     def pose_cfg_path(self) -> str:
@@ -572,14 +567,13 @@ class MainWindow(QMainWindow):
         _attempt_attribute_update("cfg_line", self.config)
 
     def is_transreid_available(self):
-        if self.is_multianimal:
-            try:
-                from deeplabcut.pose_tracking_pytorch import transformer_reID
+        if not self.is_multianimal:
+            return False
+        try:
+            from deeplabcut.pose_tracking_pytorch import transformer_reID
 
-                return True
-            except ModuleNotFoundError:
-                return False
-        else:
+            return True
+        except ModuleNotFoundError:
             return False
 
     def closeEvent(self, event):

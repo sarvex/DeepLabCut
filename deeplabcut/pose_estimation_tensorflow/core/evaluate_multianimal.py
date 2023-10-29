@@ -70,7 +70,7 @@ def _find_closest_neighbors(xy_true, xy_pred, k=5):
 def _calc_prediction_error(data):
     _ = data.pop("metadata", None)
     dists = []
-    for n, dict_ in enumerate(tqdm(data.values())):
+    for dict_ in tqdm(data.values()):
         gt = np.concatenate(dict_["groundtruth"][1])
         xy = np.concatenate(dict_["prediction"]["coordinates"][0])
         p = np.concatenate(dict_["prediction"]["confidence"])

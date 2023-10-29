@@ -76,13 +76,13 @@ class BlockDecoder(object):
             "r%d" % block.num_repeat,
             "k%d" % block.kernel_size,
             "s%d%d" % (block.strides[0], block.strides[1]),
-            "e%s" % block.expand_ratio,
+            f"e{block.expand_ratio}",
             "i%d" % block.input_filters,
             "o%d" % block.output_filters,
             "c%d" % block.conv_type,
         ]
         if block.se_ratio > 0 and block.se_ratio <= 1:
-            args.append("se%s" % block.se_ratio)
+            args.append(f"se{block.se_ratio}")
         if block.id_skip is False:
             args.append("noskip")
         return "_".join(args)
@@ -95,10 +95,9 @@ class BlockDecoder(object):
           A list of namedtuples to represent blocks arguments.
         """
         assert isinstance(string_list, list)
-        blocks_args = []
-        for block_string in string_list:
-            blocks_args.append(self._decode_block_string(block_string))
-        return blocks_args
+        return [
+            self._decode_block_string(block_string) for block_string in string_list
+        ]
 
     def encode(self, blocks_args):
         """Encodes a list of Blocks to a list of strings.
@@ -107,10 +106,7 @@ class BlockDecoder(object):
         Returns:
           a list of strings, each string is a notation of block.
         """
-        block_strings = []
-        for block in blocks_args:
-            block_strings.append(self._encode_block_string(block))
-        return block_strings
+        return [self._encode_block_string(block) for block in blocks_args]
 
 
 def swish(features, use_native=True):
@@ -131,9 +127,8 @@ def swish(features, use_native=True):
     """
     if use_native:
         return tf.nn.swish(features)
-    else:
-        features = tf.convert_to_tensor(value=features, name="features")
-        return features * tf.nn.sigmoid(features)
+    features = tf.convert_to_tensor(value=features, name="features")
+    return features * tf.nn.sigmoid(features)
 
 
 def efficientnet(
@@ -182,16 +177,15 @@ def efficientnet(
 
 def get_model_params(model_name, override_params):
     """Get the block args and global params for a given model."""
-    if model_name.startswith("efficientnet"):
-        width_coefficient, depth_coefficient, _, dropout_rate = efficientnet_params(
-            model_name
-        )
-        blocks_args, global_params = efficientnet(
-            width_coefficient, depth_coefficient, dropout_rate
-        )
-    else:
-        raise NotImplementedError("model name is not pre-defined: %s" % model_name)
+    if not model_name.startswith("efficientnet"):
+        raise NotImplementedError(f"model name is not pre-defined: {model_name}")
 
+    width_coefficient, depth_coefficient, _, dropout_rate = efficientnet_params(
+        model_name
+    )
+    blocks_args, global_params = efficientnet(
+        width_coefficient, depth_coefficient, dropout_rate
+    )
     if override_params:
         # ValueError will be raised here if override_params has fields not included
         # in global_params.
@@ -242,7 +236,7 @@ def build_model(
             if not tf.io.gfile.exists(model_dir):
                 tf.io.gfile.makedirs(model_dir)
             with tf.io.gfile.GFile(param_file, "w") as f:
-                tf.compat.v1.logging.info("writing to %s" % param_file)
+                tf.compat.v1.logging.info(f"writing to {param_file}")
                 f.write("model_name= %s\n\n" % model_name)
                 f.write("global_params= %s\n\n" % str(global_params))
                 f.write("blocks_args= %s\n\n" % str(blocks_args))

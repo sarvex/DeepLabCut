@@ -24,20 +24,16 @@ def pairwisedistances(DataCombined, scorer1, scorer2, pcutoff=-1, bodyparts=None
     mask = DataCombined[scorer2].xs("likelihood", level=1, axis=1) >= pcutoff
     if bodyparts is None:
         Pointwisesquareddistance = (DataCombined[scorer1] - DataCombined[scorer2]) ** 2
-        RMSE = np.sqrt(
-            Pointwisesquareddistance.xs("x", level=1, axis=1)
-            + Pointwisesquareddistance.xs("y", level=1, axis=1)
-        )  # Euclidean distance (proportional to RMSE)
-        return RMSE, RMSE[mask]
     else:
         Pointwisesquareddistance = (
             DataCombined[scorer1][bodyparts] - DataCombined[scorer2][bodyparts]
         ) ** 2
-        RMSE = np.sqrt(
-            Pointwisesquareddistance.xs("x", level=1, axis=1)
-            + Pointwisesquareddistance.xs("y", level=1, axis=1)
-        )  # Euclidean distance (proportional to RMSE)
-        return RMSE, RMSE[mask]
+
+    RMSE = np.sqrt(
+        Pointwisesquareddistance.xs("x", level=1, axis=1)
+        + Pointwisesquareddistance.xs("y", level=1, axis=1)
+    )  # Euclidean distance (proportional to RMSE)
+    return RMSE, RMSE[mask]
 
 
 def distance(v, w):
@@ -152,9 +148,9 @@ def calculatepafdistancebounds(
                             else:
                                 ds_across.extend(distances.values.flatten())
 
-            edgeencoding = str(edge[0]) + "_" + str(edge[1])
+            edgeencoding = f"{str(edge[0])}_{str(edge[1])}"
             inferenceboundscfg[edgeencoding] = {}
-            if len(ds_within) > 0:
+            if ds_within:
                 inferenceboundscfg[edgeencoding]["intra_max"] = str(
                     round(np.nanmax(ds_within), numdigits)
                 )
@@ -168,7 +164,7 @@ def calculatepafdistancebounds(
                 inferenceboundscfg[edgeencoding]["intra_min"] = str(0)
 
             # NOTE: the inter-animal distances are currently not used, but are interesting to compare to intra_*
-            if len(ds_across) > 0:
+            if ds_across:
                 inferenceboundscfg[edgeencoding]["inter_max"] = str(
                     round(np.nanmax(ds_across), numdigits)
                 )
@@ -307,8 +303,7 @@ def return_evaluate_network_data(
         dlc_cfg = load_config(str(path_test_config))
     except FileNotFoundError:
         raise FileNotFoundError(
-            "It seems the model for shuffle %s and trainFraction %s does not exist."
-            % (shuffle, trainFraction)
+            f"It seems the model for shuffle {shuffle} and trainFraction {trainFraction} does not exist."
         )
 
     ########################### RESCALING (to global scale)
@@ -489,10 +484,7 @@ def return_evaluate_network_data(
     if returnjustfns:
         return resultsfns
     else:
-        if fulldata == True:
-            return DATA, results
-        else:
-            return results
+        return (DATA, results) if fulldata == True else results
 
 
 def keypoint_error(
@@ -694,19 +686,18 @@ def evaluate_network(
 
         if trainingsetindex == "all":
             TrainingFractions = cfg["TrainingFraction"]
-        else:
-            if (
+        elif (
                 trainingsetindex < len(cfg["TrainingFraction"])
                 and trainingsetindex >= 0
             ):
-                TrainingFractions = [cfg["TrainingFraction"][int(trainingsetindex)]]
-            else:
-                raise Exception(
-                    "Please check the trainingsetindex! ",
-                    trainingsetindex,
-                    " should be an integer from 0 .. ",
-                    int(len(cfg["TrainingFraction"]) - 1),
-                )
+            TrainingFractions = [cfg["TrainingFraction"][int(trainingsetindex)]]
+        else:
+            raise Exception(
+                "Please check the trainingsetindex! ",
+                trainingsetindex,
+                " should be an integer from 0 .. ",
+                int(len(cfg["TrainingFraction"]) - 1),
+            )
 
         # Loading human annotatated data
         trainingsetfolder = auxiliaryfunctions.get_training_set_folder(cfg)
@@ -760,8 +751,7 @@ def evaluate_network(
                     dlc_cfg = load_config(str(path_test_config))
                 except FileNotFoundError:
                     raise FileNotFoundError(
-                        "It seems the model for shuffle %s and trainFraction %s does not exist."
-                        % (shuffle, trainFraction)
+                        f"It seems the model for shuffle {shuffle} and trainFraction {trainFraction} does not exist."
                     )
 
                 # change batch size, if it was edited during analysis!
@@ -1051,7 +1041,7 @@ def evaluate_network(
                                     "Plots already exist for this snapshot... Skipping to the next one."
                                 )
 
-                if len(final_result) > 0:  # Only append if results were calculated
+                if final_result:  # Only append if results were calculated
                     make_results_file(final_result, evaluationfolder, DLCscorer)
                     print(
                         "The network is evaluated and the results are stored in the subdirectory 'evaluation_results'."
@@ -1064,7 +1054,7 @@ def evaluate_network(
                     )
 
     # returning to initial folder
-    os.chdir(str(start_path))
+    os.chdir(start_path)
 
 
 def make_results_file(final_result, evaluationfolder, DLCscorer):

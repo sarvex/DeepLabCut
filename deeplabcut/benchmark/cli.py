@@ -32,10 +32,7 @@ def _parse_args():
 def main():
     """Main CLI entry point for generating deeplabcut.benchmark results."""
     args = _parse_args()
-    if not args.nocache:
-        results = deeplabcut.benchmark.loadcache()
-    else:
-        results = None
+    results = deeplabcut.benchmark.loadcache() if not args.nocache else None
     results = deeplabcut.benchmark.evaluate(
         include_benchmarks=args.include,
         results=results,

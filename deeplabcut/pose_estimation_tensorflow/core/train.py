@@ -114,7 +114,7 @@ def get_optimizer(loss_op, cfg):
     elif cfg["optimizer"] == "adam":
         optimizer = tf.compat.v1.train.AdamOptimizer(learning_rate)
     else:
-        raise ValueError("unknown optimizer {}".format(cfg["optimizer"]))
+        raise ValueError(f'unknown optimizer {cfg["optimizer"]}')
     train_op = slim.learning.create_train_op(loss_op, optimizer)
 
     return learning_rate, train_op, tstep
@@ -130,7 +130,7 @@ def get_optimizer_with_freeze(loss_op, cfg):
     elif cfg["optimizer"] == "adam":
         optimizer = tf.compat.v1.train.AdamOptimizer(learning_rate)
     else:
-        raise ValueError("unknown optimizer {}".format(cfg["optimizer"]))
+        raise ValueError(f'unknown optimizer {cfg["optimizer"]}')
 
     train_unfrozen_op = slim.learning.create_train_op(loss_op, optimizer)
     variables_unfrozen = tf.compat.v1.get_collection(
@@ -270,48 +270,46 @@ def train(
     lr_gen = LearningRate(cfg)
 
     stats_path = Path(config_yaml).with_name("learning_stats.csv")
-    lrf = open(str(stats_path), "w")
+    with open(str(stats_path), "w") as lrf:
+        print("Training parameter:")
+        print(cfg)
+        print("Starting training....")
+        max_iter += start_iter  # max_iter is relative to start_iter
+        for it in range(start_iter, max_iter + 1):
+            if "efficientnet" in net_type:
+                lr_dict = {tstep: it - start_iter}
+                current_lr = sess.run(learning_rate, feed_dict=lr_dict)
+            else:
+                current_lr = lr_gen.get_lr(it - start_iter)
+                lr_dict = {learning_rate: current_lr}
 
-    print("Training parameter:")
-    print(cfg)
-    print("Starting training....")
-    max_iter += start_iter  # max_iter is relative to start_iter
-    for it in range(start_iter, max_iter + 1):
-        if "efficientnet" in net_type:
-            lr_dict = {tstep: it - start_iter}
-            current_lr = sess.run(learning_rate, feed_dict=lr_dict)
-        else:
-            current_lr = lr_gen.get_lr(it - start_iter)
-            lr_dict = {learning_rate: current_lr}
-
-        [_, loss_val, summary] = sess.run(
-            [train_op, total_loss, merged_summaries], feed_dict=lr_dict
-        )
-        cum_loss += loss_val
-        train_writer.add_summary(summary, it)
-
-        if it % display_iters == 0 and it > start_iter:
-            average_loss = cum_loss / display_iters
-            cum_loss = 0.0
-            logging.info(
-                "iteration: {} loss: {} lr: {}".format(
-                    it, "{0:.4f}".format(average_loss), current_lr
-                )
+            [_, loss_val, summary] = sess.run(
+                [train_op, total_loss, merged_summaries], feed_dict=lr_dict
             )
-            lrf.write("{}, {:.5f}, {}\n".format(it, average_loss, current_lr))
-            lrf.flush()
+            cum_loss += loss_val
+            train_writer.add_summary(summary, it)
 
-        # Save snapshot
-        if (it % save_iters == 0 and it != start_iter) or it == max_iter:
-            model_name = cfg["snapshot_prefix"]
-            saver.save(sess, model_name, global_step=it)
+            if it % display_iters == 0 and it > start_iter:
+                average_loss = cum_loss / display_iters
+                cum_loss = 0.0
+                logging.info(
+                    "iteration: {} loss: {} lr: {}".format(
+                        it, "{0:.4f}".format(average_loss), current_lr
+                    )
+                )
+                lrf.write("{}, {:.5f}, {}\n".format(it, average_loss, current_lr))
+                lrf.flush()
 
-    lrf.close()
+            # Save snapshot
+            if (it % save_iters == 0 and it != start_iter) or it == max_iter:
+                model_name = cfg["snapshot_prefix"]
+                saver.save(sess, model_name, global_step=it)
+
     sess.close()
     coord.request_stop()
     coord.join([thread])
     # return to original path.
-    os.chdir(str(start_path))
+    os.chdir(start_path)
 
 
 if __name__ == "__main__":

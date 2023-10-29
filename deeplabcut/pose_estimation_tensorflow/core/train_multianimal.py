@@ -183,72 +183,69 @@ def train(
     cumloss, partloss, locrefloss, pwloss = 0.0, 0.0, 0.0, 0.0
     lr_gen = LearningRate(cfg)
     stats_path = Path(config_yaml).with_name("learning_stats.csv")
-    lrf = open(str(stats_path), "w")
+    with open(str(stats_path), "w") as lrf:
+        print("Training parameters:")
+        print(cfg)
+        print("Starting multi-animal training....")
+        max_iter += start_iter  # max_iter is relative to start_iter
+        for it in range(start_iter, max_iter + 1):
+            if "efficientnet" in net_type:
+                lr_dict = {tstep: it - start_iter}
+                current_lr = sess.run(learning_rate, feed_dict=lr_dict)
+            else:
+                current_lr = lr_gen.get_lr(it - start_iter)
+                lr_dict = {learning_rate: current_lr}
 
-    print("Training parameters:")
-    print(cfg)
-    print("Starting multi-animal training....")
-    max_iter += start_iter  # max_iter is relative to start_iter
-    for it in range(start_iter, max_iter + 1):
-        if "efficientnet" in net_type:
-            lr_dict = {tstep: it - start_iter}
-            current_lr = sess.run(learning_rate, feed_dict=lr_dict)
-        else:
-            current_lr = lr_gen.get_lr(it - start_iter)
-            lr_dict = {learning_rate: current_lr}
-
-        # [_, loss_val, summary] = sess.run([train_op, total_loss, merged_summaries],feed_dict={learning_rate: current_lr})
-        [_, alllosses, loss_val, summary] = sess.run(
-            [train_op, losses, total_loss, merged_summaries], feed_dict=lr_dict
-        )
-
-        partloss += alllosses["part_loss"]  # scoremap loss
-        if cfg["location_refinement"]:
-            locrefloss += alllosses["locref_loss"]
-        if cfg["pairwise_predict"]:  # paf loss
-            pwloss += alllosses["pairwise_loss"]
-
-        cumloss += loss_val
-        train_writer.add_summary(summary, it)
-        if it % display_iters == 0 and it > start_iter:
-            logging.info(
-                "iteration: {} loss: {} scmap loss: {} locref loss: {} limb loss: {} lr: {}".format(
-                    it,
-                    "{0:.4f}".format(cumloss / display_iters),
-                    "{0:.4f}".format(partloss / display_iters),
-                    "{0:.4f}".format(locrefloss / display_iters),
-                    "{0:.4f}".format(pwloss / display_iters),
-                    current_lr,
-                )
+            # [_, loss_val, summary] = sess.run([train_op, total_loss, merged_summaries],feed_dict={learning_rate: current_lr})
+            [_, alllosses, loss_val, summary] = sess.run(
+                [train_op, losses, total_loss, merged_summaries], feed_dict=lr_dict
             )
 
-            lrf.write(
-                "iteration: {}, loss: {}, scmap loss: {}, locref loss: {}, limb loss: {}, lr: {}\n".format(
-                    it,
-                    "{0:.4f}".format(cumloss / display_iters),
-                    "{0:.4f}".format(partloss / display_iters),
-                    "{0:.4f}".format(locrefloss / display_iters),
-                    "{0:.4f}".format(pwloss / display_iters),
-                    current_lr,
+            partloss += alllosses["part_loss"]  # scoremap loss
+            if cfg["location_refinement"]:
+                locrefloss += alllosses["locref_loss"]
+            if cfg["pairwise_predict"]:  # paf loss
+                pwloss += alllosses["pairwise_loss"]
+
+            cumloss += loss_val
+            train_writer.add_summary(summary, it)
+            if it % display_iters == 0 and it > start_iter:
+                logging.info(
+                    "iteration: {} loss: {} scmap loss: {} locref loss: {} limb loss: {} lr: {}".format(
+                        it,
+                        "{0:.4f}".format(cumloss / display_iters),
+                        "{0:.4f}".format(partloss / display_iters),
+                        "{0:.4f}".format(locrefloss / display_iters),
+                        "{0:.4f}".format(pwloss / display_iters),
+                        current_lr,
+                    )
                 )
-            )
 
-            cumloss, partloss, locrefloss, pwloss = 0.0, 0.0, 0.0, 0.0
-            lrf.flush()
+                lrf.write(
+                    "iteration: {}, loss: {}, scmap loss: {}, locref loss: {}, limb loss: {}, lr: {}\n".format(
+                        it,
+                        "{0:.4f}".format(cumloss / display_iters),
+                        "{0:.4f}".format(partloss / display_iters),
+                        "{0:.4f}".format(locrefloss / display_iters),
+                        "{0:.4f}".format(pwloss / display_iters),
+                        current_lr,
+                    )
+                )
 
-        # Save snapshot
-        if (it % save_iters == 0 and it != start_iter) or it == max_iter:
-            model_name = cfg["snapshot_prefix"]
-            saver.save(sess, model_name, global_step=it)
+                cumloss, partloss, locrefloss, pwloss = 0.0, 0.0, 0.0, 0.0
+                lrf.flush()
 
-    lrf.close()
+            # Save snapshot
+            if (it % save_iters == 0 and it != start_iter) or it == max_iter:
+                model_name = cfg["snapshot_prefix"]
+                saver.save(sess, model_name, global_step=it)
 
     sess.close()
     coord.request_stop()
     coord.join([thread])
 
     # return to original path.
-    os.chdir(str(start_path))
+    os.chdir(start_path)
 
 
 if __name__ == "__main__":

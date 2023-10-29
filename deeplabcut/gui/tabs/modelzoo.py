@@ -99,8 +99,7 @@ class ModelZoo(DefaultTab):
             return
 
         scales = []
-        scales_ = self.scales_line.text()
-        if scales_:
+        if scales_ := self.scales_line.text():
             if (
                 self.scales_line.validator().validate(scales_, 0)[0]
                 == RegExpValidator.Acceptable

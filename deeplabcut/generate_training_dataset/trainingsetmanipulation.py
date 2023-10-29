@@ -99,10 +99,7 @@ def adddatasetstovideolistandviceversa(config):
     for vn in video_names:
         if vn not in alldatafolders:
             print(vn, " is missing as a labeled folder >> removing key!")
-            for fullvideo in videos:
-                if vn in fullvideo:
-                    toberemoved.append(fullvideo)
-
+            toberemoved.extend(fullvideo for fullvideo in videos if vn in fullvideo)
     for vid in toberemoved:
         del videos[vid]
 
@@ -185,9 +182,9 @@ def dropannotationfileentriesduetodeletedimages(config):
             continue
         dropped = False
         for imagename in DC.index:
-            if os.path.isfile(os.path.join(cfg["project_path"], *imagename)):
-                pass
-            else:
+            if not os.path.isfile(
+                os.path.join(cfg["project_path"], *imagename)
+            ):
                 print("Dropping...", imagename)
                 DC = DC.drop(imagename)
                 dropped = True
@@ -224,9 +221,7 @@ def dropimagesduetolackofannotation(config):
         imagelist = [fns for fns in os.listdir(str(folder)) if ".png" in fns]
         print("Annotated images: ", len(annotatedimages), " In folder:", len(imagelist))
         for imagename in imagelist:
-            if imagename in annotatedimages:
-                pass
-            else:
+            if imagename not in annotatedimages:
                 fullpath = os.path.join(
                     cfg["project_path"], "labeled-data", folder, imagename
                 )
@@ -272,8 +267,7 @@ def dropunlabeledframes(config):
         before_len = len(DC.index)
         DC = DC.dropna(how="all")  # drop rows where all values are missing(NaN)
         after_len = len(DC.index)
-        dropped = before_len - after_len
-        if dropped:
+        if dropped := before_len - after_len:
             DC.to_hdf(h5file, key="df_with_missing", mode="w")
             DC.to_csv(
                 os.path.join(str(folder), "CollectedData_" + cfg["scorer"] + ".csv")
@@ -344,7 +338,7 @@ def check_labels(
         os.path.join(cfg["project_path"], "labeled-data", str(Path(i)))
         for i in video_names
     ]
-    print("Creating images with labels by %s." % cfg["scorer"])
+    print(f'Creating images with labels by {cfg["scorer"]}.')
     for folder in folders:
         try:
             DataCombined = pd.read_hdf(
@@ -419,10 +413,7 @@ def MakeTest_pose_yaml(
     sigma=None,
     locref_smooth=None,
 ):
-    dict_test = {}
-    for key in keys2save:
-        dict_test[key] = dictionary[key]
-
+    dict_test = {key: dictionary[key] for key in keys2save}
     # adding important values for multianiaml project:
     if nmsradius is not None:
         dict_test["nmsradius"] = nmsradius
@@ -457,7 +448,7 @@ def _robust_path_split(path):
     elif len(splits) == 2:
         parent, file = splits
     else:
-        raise ("Unknown filepath split for path {}".format(path))
+        raise f"Unknown filepath split for path {path}"
     filename, ext = os.path.splitext(file)
     return parent, filename, ext
 
@@ -493,9 +484,9 @@ def merge_annotateddatasets(cfg, trainingsetfolder_full):
             "Annotation data was not found by splitting video paths (from config['video_sets']). An alternative route is taken..."
         )
         AnnotationData = conversioncode.merge_windowsannotationdataONlinuxsystem(cfg)
-        if not len(AnnotationData):
-            print("No data was found!")
-            return
+    if not len(AnnotationData):
+        print("No data was found!")
+        return
 
     AnnotationData = pd.concat(AnnotationData).sort_index()
     # When concatenating DataFrames with misaligned column labels,
@@ -837,11 +828,10 @@ def create_training_dataset(
             raise ValueError(
                 "posecfg_template argument must contain path to a pose_cfg.yaml file"
             )
-        else:
-            print("Reloading pose_cfg parameters from " + posecfg_template + "\n")
-            from deeplabcut.utils.auxiliaryfunctions import read_plainconfig
+        print("Reloading pose_cfg parameters from " + posecfg_template + "\n")
+        from deeplabcut.utils.auxiliaryfunctions import read_plainconfig
 
-            prior_cfg = read_plainconfig(posecfg_template)
+        prior_cfg = read_plainconfig(posecfg_template)
     if cfg.get("multianimalproject", False):
         from deeplabcut.generate_training_dataset.multiple_individuals_trainingsetmanipulation import (
             create_multianimaltraining_dataset,
@@ -875,15 +865,12 @@ def create_training_dataset(
         # loading & linking pretrained models
         if net_type is None:  # loading & linking pretrained models
             net_type = cfg.get("default_net_type", "resnet_50")
-        else:
-            if (
-                "resnet" in net_type
-                or "mobilenet" in net_type
-                or "efficientnet" in net_type
-            ):
-                pass
-            else:
-                raise ValueError("Invalid network type:", net_type)
+        elif (
+            "resnet" not in net_type
+            and "mobilenet" not in net_type
+            and "efficientnet" not in net_type
+        ):
+            raise ValueError("Invalid network type:", net_type)
 
         if augmenter_type is None:
             augmenter_type = cfg.get("default_augmenter", "imgaug")
@@ -914,7 +901,7 @@ def create_training_dataset(
         dlcparent_path = auxiliaryfunctions.get_deeplabcut_path()
         if not posecfg_template:
             defaultconfigfile = os.path.join(dlcparent_path, "pose_cfg.yaml")
-        elif posecfg_template:
+        else:
             defaultconfigfile = posecfg_template
         model_path = auxfun_models.check_for_weights(
             net_type, Path(dlcparent_path)
@@ -975,12 +962,7 @@ def create_training_dataset(
                         askuser = input(
                             "The model folder is already present. If you continue, it will overwrite the existing model (split). Do you want to continue?(yes/no): "
                         )
-                        if (
-                            askuser == "no"
-                            or askuser == "No"
-                            or askuser == "N"
-                            or askuser == "No"
-                        ):
+                        if askuser in ["no", "No", "N"]:
                             raise Exception(
                                 "Use the Shuffles argument as a list to specify a different shuffle index. Check out the help for more details."
                             )
@@ -1028,10 +1010,10 @@ def create_training_dataset(
                     Path(config).parents[0] / modelfoldername, recursive=True
                 )
                 auxiliaryfunctions.attempt_to_make_folder(
-                    str(Path(config).parents[0] / modelfoldername) + "/train"
+                    f"{str(Path(config).parents[0] / modelfoldername)}/train"
                 )
                 auxiliaryfunctions.attempt_to_make_folder(
-                    str(Path(config).parents[0] / modelfoldername) + "/test"
+                    f"{str(Path(config).parents[0] / modelfoldername)}/test"
                 )
 
                 path_train_config = str(
@@ -1107,11 +1089,9 @@ def get_largestshuffle_index(config):
         models.sort(key=lambda f: int("".join(filter(str.isdigit, f))))
 
         # get the shuffle index and offset by 1.
-        max_shuffle_index = int(models[-1].split("shuffle")[-1]) + 1
+        return int(models[-1].split("shuffle")[-1]) + 1
     else:
-        max_shuffle_index = 0
-
-    return max_shuffle_index
+        return 0
 
 
 def create_training_model_comparison(
@@ -1227,9 +1207,6 @@ def create_training_model_comparison(
         hdlr.setFormatter(formatter)
         logger.addHandler(hdlr)
         logger.setLevel(logging.INFO)
-    else:
-        pass
-
     largestshuffleindex = get_largestshuffle_index(config)
 
     shuffle_list = []

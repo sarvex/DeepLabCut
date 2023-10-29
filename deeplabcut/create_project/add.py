@@ -73,9 +73,7 @@ def add_new_videos(
     destinations = [video_path.joinpath(vp.name) for vp in videos]
     if copy_videos:
         for src, dst in zip(videos, destinations):
-            if dst.exists():
-                pass
-            else:
+            if not dst.exists():
                 print("Copying the videos")
                 shutil.copy(os.fspath(src), os.fspath(dst))
 
@@ -90,19 +88,19 @@ def add_new_videos(
                 src = str(src)
                 dst = str(dst)
                 os.symlink(src, dst)
-                print("Created the symlink of {} to {}".format(src, dst))
+                print(f"Created the symlink of {src} to {dst}")
             except OSError:
                 try:
                     import subprocess
 
-                    subprocess.check_call("mklink %s %s" % (dst, src), shell=True)
+                    subprocess.check_call(f"mklink {dst} {src}", shell=True)
                 except (OSError, subprocess.CalledProcessError):
                     print(
                         "Symlink creation impossible (exFat architecture?): "
                         "copying the video instead."
                     )
                     shutil.copy(os.fspath(src), os.fspath(dst))
-                    print("{} copied to {}".format(src, dst))
+                    print(f"{src} copied to {dst}")
             videos = destinations
 
     if copy_videos:
@@ -117,10 +115,7 @@ def add_new_videos(
             video_path = os.readlink(video)
 
         vid = VideoReader(video_path)
-        if coords is not None:
-            c = coords[idx]
-        else:
-            c = vid.get_bbox()
+        c = coords[idx] if coords is not None else vid.get_bbox()
         params = {video_path: {"crop": ", ".join(map(str, c))}}
         if "video_sets_original" not in cfg:
             cfg["video_sets"].update(params)

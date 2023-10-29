@@ -92,12 +92,12 @@ def calibrate_cameras(config, cbrow=8, cbcol=6, calibrate=False, alpha=0.4, sear
     # update the variable snapshot* in config file according to the name of the cameras
     try:
         for i in range(len(cam_names)):
-            cfg_3d[str("config_file_" + cam_names[i])] = cfg_3d.pop(
-                str("config_file_camera-" + str(i + 1))
+            cfg_3d[str(f"config_file_{cam_names[i]}")] = cfg_3d.pop(
+                str(f"config_file_camera-{str(i + 1)}")
             )
         for i in range(len(cam_names)):
-            cfg_3d[str("shuffle_" + cam_names[i])] = cfg_3d.pop(
-                str("shuffle_camera-" + str(i + 1))
+            cfg_3d[str(f"shuffle_{cam_names[i]}")] = cfg_3d.pop(
+                str(f"shuffle_camera-{str(i + 1)}")
             )
     except:
         pass
@@ -111,7 +111,6 @@ def calibrate_cameras(config, cbrow=8, cbcol=6, calibrate=False, alpha=0.4, sear
     objpoints = {}  # 3d point in real world space
     imgpoints = {}  # 2d points in image plane.
     dist_pickle = {}
-    stereo_params = {}
     for cam in cam_names:
         objpoints.setdefault(cam, [])
         imgpoints.setdefault(cam, [])
@@ -119,7 +118,7 @@ def calibrate_cameras(config, cbrow=8, cbcol=6, calibrate=False, alpha=0.4, sear
 
     # Sort the images.
     images.sort(key=lambda f: int("".join(filter(str.isdigit, f))))
-    if len(images) == 0:
+    if not images:
         raise Exception(
             "No calibration images found. Make sure the calibration images are saved as .jpg and with prefix as the camera name as specified in the config.yaml file."
         )
@@ -147,11 +146,9 @@ def calibrate_cameras(config, cbrow=8, cbcol=6, calibrate=False, alpha=0.4, sear
                     imgpoints[cam].append(corners)
                     # Draw the corners and store the images
                     img = cv2.drawChessboardCorners(img, (cbcol, cbrow), corners, ret)
-                    cv2.imwrite(
-                        os.path.join(str(path_corners), filename + "_corner.jpg"), img
-                    )
+                    cv2.imwrite(os.path.join(str(path_corners), f"{filename}_corner.jpg"), img)
                 else:
-                    print("Corners not found for the image %s" % Path(fname).name)
+                    print(f"Corners not found for the image {Path(fname).name}")
                     for new_cam in cam_names:
                         remove_fname = Path(fname).name.replace(cam, new_cam)
                         os.rename(
@@ -186,13 +183,14 @@ def calibrate_cameras(config, cbrow=8, cbcol=6, calibrate=False, alpha=0.4, sear
             pickle.dump(
                 dist_pickle,
                 open(
-                    os.path.join(path_camera_matrix, cam + "_intrinsic_params.pickle"),
+                    os.path.join(
+                        path_camera_matrix, f"{cam}_intrinsic_params.pickle"
+                    ),
                     "wb",
                 ),
             )
             print(
-                "Saving intrinsic camera calibration matrices for %s as a pickle file in %s"
-                % (cam, os.path.join(path_camera_matrix))
+                f"Saving intrinsic camera calibration matrices for {cam} as a pickle file in {os.path.join(path_camera_matrix)}"
             )
 
             # Compute mean re-projection errors for individual cameras
@@ -212,6 +210,7 @@ def calibrate_cameras(config, cbrow=8, cbcol=6, calibrate=False, alpha=0.4, sear
 
         # Compute stereo calibration for each pair of cameras
         camera_pair = [[cam_names[0], cam_names[1]]]
+        stereo_params = {}
         for pair in camera_pair:
             print("Computing stereo calibration for " % pair)
             (
@@ -249,7 +248,7 @@ def calibrate_cameras(config, cbrow=8, cbcol=6, calibrate=False, alpha=0.4, sear
                 alpha=rectify_scale,
             )
 
-            stereo_params[pair[0] + "-" + pair[1]] = {
+            stereo_params[f"{pair[0]}-{pair[1]}"] = {
                 "cameraMatrix1": cameraMatrix1,
                 "cameraMatrix2": cameraMatrix2,
                 "distCoeffs1": distCoeffs1,
@@ -269,8 +268,7 @@ def calibrate_cameras(config, cbrow=8, cbcol=6, calibrate=False, alpha=0.4, sear
             }
 
         print(
-            "Saving the stereo parameters for every pair of cameras as a pickle file in %s"
-            % str(os.path.join(path_camera_matrix))
+            f"Saving the stereo parameters for every pair of cameras as a pickle file in {str(os.path.join(path_camera_matrix))}"
         )
 
         auxiliaryfunctions.write_pickle(
@@ -281,8 +279,7 @@ def calibrate_cameras(config, cbrow=8, cbcol=6, calibrate=False, alpha=0.4, sear
         )
     else:
         print(
-            "Corners extracted! You may check for the extracted corners in the directory %s and remove the pair of images where the corners are incorrectly detected. If all the corners are detected correctly with right order, then re-run the same function and use the flag ``calibrate=True``, to calbrate the camera."
-            % str(path_corners)
+            f"Corners extracted! You may check for the extracted corners in the directory {str(path_corners)} and remove the pair of images where the corners are incorrectly detected. If all the corners are detected correctly with right order, then re-run the same function and use the flag ``calibrate=True``, to calbrate the camera."
         )
 
 

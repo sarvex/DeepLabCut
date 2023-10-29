@@ -50,7 +50,7 @@ def test_net(visualise, cache_scoremaps):
     predictions = np.zeros((num_images,), dtype=np.object)
 
     for k in range(num_images):
-        print("processing image {}/{}".format(k, num_images - 1))
+        print(f"processing image {k}/{num_images - 1}")
 
         batch = dataset.next_batch()
 
@@ -72,10 +72,10 @@ def test_net(visualise, cache_scoremaps):
         if cache_scoremaps:
             base = os.path.basename(batch[Batch.data_item].im_path)
             raw_name = os.path.splitext(base)[0]
-            out_fn = os.path.join(out_dir, raw_name + ".mat")
+            out_fn = os.path.join(out_dir, f"{raw_name}.mat")
             scipy.io.savemat(out_fn, mdict={"scoremaps": scmap.astype("float32")})
 
-            out_fn = os.path.join(out_dir, raw_name + "_locreg" + ".mat")
+            out_fn = os.path.join(out_dir, f"{raw_name}_locreg.mat")
             if cfg["location_refinement"]:
                 scipy.io.savemat(
                     out_fn, mdict={"locreg_pred": locref.astype("float32")}

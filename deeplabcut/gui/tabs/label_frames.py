@@ -49,11 +49,7 @@ class LabelFrames(DefaultTab):
         )
         if dialog.exec_():
             folder = dialog.selectedFiles()[0]
-            has_h5 = False
-            for file in os.listdir(folder):
-                if file.endswith(".h5"):
-                    has_h5 = True
-                    break
+            has_h5 = any(file.endswith(".h5") for file in os.listdir(folder))
             if not has_h5:
                 folder = [folder, self.root.config]
             _ = launch_napari(folder)

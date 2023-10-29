@@ -70,7 +70,7 @@ def display_dataset():
                 scmap_part = imresize(scmap_part, 8.0, interpolationmethod=cv2.INTER_NEAREST)
                 scmap_part = np.lib.pad(scmap_part, ((4, 0), (4, 0)), "minimum")
 
-                curr_plot.set_title("{}".format(j + 1))
+                curr_plot.set_title(f"{j + 1}")
                 curr_plot.imshow(img)
                 curr_plot.hold(True)
                 curr_plot.imshow(scmap_part, alpha=0.5)

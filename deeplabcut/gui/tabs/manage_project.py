@@ -64,13 +64,12 @@ class ManageProject(DefaultTab):
 
     def add_new_videos(self):
         cwd = os.getcwd()
-        files = QFileDialog.getOpenFileNames(
+        if files := QFileDialog.getOpenFileNames(
             self,
             "Select videos to add to the project",
             cwd,
             f"Videos ({' *.'.join(DLCParams.VIDEOTYPES)[1:]})",
-        )[0]
-        if not files:
+        )[0]:
+            add_new_videos(self.root.config, files)
+        else:
             return
-
-        add_new_videos(self.root.config, files)

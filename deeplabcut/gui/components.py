@@ -145,8 +145,7 @@ class VideoSelectionWidget(QtWidgets.QWidget):
         self.root.video_type = vtype
 
     def _update_video_selection(self, videopaths):
-        n_videos = len(self.root.video_files)
-        if n_videos:
+        if n_videos := len(self.root.video_files):
             self.selected_videos_text.setText(f"{n_videos} videos selected")
             self.select_video_button.setText("Add more videos")
         else:
@@ -168,7 +167,7 @@ class VideoSelectionWidget(QtWidgets.QWidget):
 
     def clear_selected_videos(self):
         self.root.video_files = set()
-        self.root.logger.info(f"Cleared selected videos")
+        self.root.logger.info("Cleared selected videos")
 
 
 class TrainingSetSpinBox(QtWidgets.QSpinBox):
@@ -274,30 +273,17 @@ class BrowseFilesButton(QtWidgets.QPushButton):
         self.clicked.connect(self.browse_files)
 
     def browse_files(self):
-        # Look for any extension by default
-        file_ext = "*"
-        if self.filetype:
-            # This works both with e.g. .avi and avi
-            file_ext = self.filetype.split(".")[-1]
-
+        file_ext = self.filetype.split(".")[-1] if self.filetype else "*"
         # Choose multiple files by default
         open_file_func = QtWidgets.QFileDialog.getOpenFileNames
         if self.single_file_only:
             open_file_func = QtWidgets.QFileDialog.getOpenFileName
 
-        cwd = ""
-        if self.cwd:
-            cwd = self.cwd
-
+        cwd = self.cwd if self.cwd else ""
         dialog_text = f"Select .{file_ext} files"
         if self.dialog_text:
             dialog_text = self.dialog_text
 
-        file_text = f"Files (*.{file_ext})"
-        if self.file_text:
-            file_text = self.file_text
-
-        filepaths = open_file_func(self, dialog_text, cwd, file_text)
-
-        if filepaths:
+        file_text = self.file_text if self.file_text else f"Files (*.{file_ext})"
+        if filepaths := open_file_func(self, dialog_text, cwd, file_text):
             self.files.update(filepaths[0])

@@ -159,19 +159,18 @@ class DraggablePoint:
         if event.inaxes == self.point.axes:
             contains, attrd = self.point.contains(event)
             if contains:
-                self.annot.xy = (self.point.center[0], self.point.center[1])
                 text = str(self.bodyParts)
                 if self.individual_names is not None:
                     text = f"{self.individual_names},{text}"
                 if self.likelihood is not None:
                     text += f",p={self.likelihood:.2f}"
+                self.annot.xy = (self.point.center[0], self.point.center[1])
                 self.annot.set_text(text)
                 self.annot.get_bbox_patch().set_alpha(0.4)
                 self.annot.set_visible(True)
                 self.point.figure.canvas.draw_idle()
-            else:
-                if vis:
-                    self.annot.set_visible(False)
+            elif vis:
+                self.annot.set_visible(False)
 
     def disconnect(self):
         "disconnect all the stored connection ids"
@@ -195,15 +194,9 @@ class BackgroundPlayer:
             self.can_run.wait()
             i = self.viz.curr_frame
             if "F" in self.speed:
-                if len(self.speed) == 1:
-                    i += 1
-                else:
-                    i += 2 * (len(self.speed) - 1)
+                i += 1 if len(self.speed) == 1 else 2 * (len(self.speed) - 1)
             elif "R" in self.speed:
-                if len(self.speed) == 1:
-                    i -= 1
-                else:
-                    i -= 2 * (len(self.speed) - 1)
+                i -= 1 if len(self.speed) == 1 else 2 * (len(self.speed) - 1)
             if i >= self.viz.manager.nframes:
                 i = 0
             elif i < 0:
@@ -341,10 +334,7 @@ class TrackletVisualizer:
         self.dotsize = manager.cfg["dotsize"]
         self.alpha = manager.cfg["alphavalue"]
 
-        if fig is None:
-            self.fig = plt.figure(figsize=(13, 8))
-        else:
-            self.fig = fig
+        self.fig = plt.figure(figsize=(13, 8)) if fig is None else fig
         gs = self.fig.add_gridspec(2, 2)
         self.ax1 = self.fig.add_subplot(gs[:, 0])
         self.ax2 = self.fig.add_subplot(gs[0, 1])
@@ -362,14 +352,20 @@ class TrackletVisualizer:
         self.scat.set_offsets(manager.xy[:, 0])
         self.scat.set_color(self.colors)
         self.trails = sum(
-            [self.ax1.plot([], [], "-", lw=2, c=c) for c in self.colors], []
+            (self.ax1.plot([], [], "-", lw=2, c=c) for c in self.colors), []
         )
         self.lines_x = sum(
-            [self.ax2.plot([], [], "-", lw=1, c=c, pickradius=5) for c in self.colors],
+            (
+                self.ax2.plot([], [], "-", lw=1, c=c, pickradius=5)
+                for c in self.colors
+            ),
             [],
         )
         self.lines_y = sum(
-            [self.ax3.plot([], [], "-", lw=1, c=c, pickradius=5) for c in self.colors],
+            (
+                self.ax3.plot([], [], "-", lw=1, c=c, pickradius=5)
+                for c in self.colors
+            ),
             [],
         )
         self.vline_x = self.ax2.axvline(0, 0, 1, c="k", ls=":")
@@ -574,9 +570,9 @@ class TrackletVisualizer:
         self.fig.canvas.draw()
 
     def on_press(self, event):
-        if event.key == "n" or event.key == "right":
+        if event.key in ["n", "right"]:
             self.move_forward()
-        elif event.key == "b" or event.key == "left":
+        elif event.key in ["b", "left"]:
             self.move_backward()
         elif event.key == "s":
             self.swap()
@@ -599,7 +595,7 @@ class TrackletVisualizer:
                 try:
                     self.cuts.pop()
                     self.ax_slider.lines.pop()
-                    if not len(self.cuts) == 2:
+                    if len(self.cuts) != 2:
                         self.clean_collections()
                 except IndexError:
                     pass
@@ -627,7 +623,7 @@ class TrackletVisualizer:
             self.player.forward()
         elif event.key == "alt+left":
             self.player.rewind()
-        elif event.key == " " or event.key == "tab":
+        elif event.key in [" ", "tab"]:
             self.player.toggle()
 
     def move_forward(self):
@@ -672,32 +668,30 @@ class TrackletVisualizer:
         elif artist.axes == self.ax3:
             if isinstance(artist, plt.Line2D):
                 self.picked = [self.lines_y.index(artist)]
-        else:  # Click on the legend lines
-            if self.picked:
-                num_individual = self.leg.get_lines().index(artist)
-                nrow = self.manager.tracklet2id.index(num_individual)
-                inds = [
-                    nrow + self.manager.to_num_bodypart(pick) for pick in self.picked
-                ]
-                xy = self.manager.xy[self.picked]
-                p = self.manager.prob[self.picked]
-                mask = np.zeros(xy.shape[1], dtype=bool)
-                if len(self.cuts) > 1:
-                    mask[self.cuts[-2] : self.cuts[-1] + 1] = True
-                    self.cuts = []
-                    for line in self.ax_slider.lines:
-                        line.remove()
-                    self.clean_collections()
-                else:
-                    return
-                sl_inds = np.ix_(inds, mask)
-                sl_picks = np.ix_(self.picked, mask)
-                old_xy = self.manager.xy[sl_inds].copy()
-                old_prob = self.manager.prob[sl_inds].copy()
-                self.manager.xy[sl_inds] = xy[:, mask]
-                self.manager.prob[sl_inds] = p[:, mask]
-                self.manager.xy[sl_picks] = old_xy
-                self.manager.prob[sl_picks] = old_prob
+        elif self.picked:
+            num_individual = self.leg.get_lines().index(artist)
+            nrow = self.manager.tracklet2id.index(num_individual)
+            inds = [
+                nrow + self.manager.to_num_bodypart(pick) for pick in self.picked
+            ]
+            p = self.manager.prob[self.picked]
+            xy = self.manager.xy[self.picked]
+            mask = np.zeros(xy.shape[1], dtype=bool)
+            if len(self.cuts) <= 1:
+                return
+            mask[self.cuts[-2] : self.cuts[-1] + 1] = True
+            self.cuts = []
+            for line in self.ax_slider.lines:
+                line.remove()
+            self.clean_collections()
+            sl_inds = np.ix_(inds, mask)
+            sl_picks = np.ix_(self.picked, mask)
+            old_xy = self.manager.xy[sl_inds].copy()
+            old_prob = self.manager.prob[sl_inds].copy()
+            self.manager.xy[sl_inds] = xy[:, mask]
+            self.manager.prob[sl_inds] = p[:, mask]
+            self.manager.xy[sl_picks] = old_xy
+            self.manager.prob[sl_picks] = old_prob
         self.picked_pair = []
         if len(self.picked) == 1:
             for pair in self.manager.swapping_pairs:
@@ -841,9 +835,7 @@ class TrackletVisualizer:
             attempt_to_make_folder(tmpfolder)
         index = []
         for ind in inds:
-            imagename = os.path.join(
-                tmpfolder, "img" + str(ind).zfill(strwidth) + ".png"
-            )
+            imagename = os.path.join(tmpfolder, f"img{str(ind).zfill(strwidth)}.png")
             index.append(
                 tuple(
                     (os.path.join(*imagename.rsplit(os.path.sep, 3)[-3:])).split("\\")

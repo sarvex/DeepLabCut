@@ -82,16 +82,15 @@ def extract_maps(
 
     if trainingsetindex == "all":
         TrainingFractions = cfg["TrainingFraction"]
+    elif trainingsetindex < len(cfg["TrainingFraction"]) and trainingsetindex >= 0:
+        TrainingFractions = [cfg["TrainingFraction"][int(trainingsetindex)]]
     else:
-        if trainingsetindex < len(cfg["TrainingFraction"]) and trainingsetindex >= 0:
-            TrainingFractions = [cfg["TrainingFraction"][int(trainingsetindex)]]
-        else:
-            raise Exception(
-                "Please check the trainingsetindex! ",
-                trainingsetindex,
-                " should be an integer from 0 .. ",
-                int(len(cfg["TrainingFraction"]) - 1),
-            )
+        raise Exception(
+            "Please check the trainingsetindex! ",
+            trainingsetindex,
+            " should be an integer from 0 .. ",
+            int(len(cfg["TrainingFraction"]) - 1),
+        )
 
     # Loading human annotatated data
     trainingsetfolder = auxiliaryfunctions.get_training_set_folder(cfg)
@@ -140,8 +139,7 @@ def extract_maps(
             dlc_cfg = load_config(str(path_test_config))
         except FileNotFoundError:
             raise FileNotFoundError(
-                "It seems the model for shuffle %s and trainFraction %s does not exist."
-                % (shuffle, trainFraction)
+                f"It seems the model for shuffle {shuffle} and trainFraction {trainFraction} does not exist."
             )
 
         # change batch size, if it was edited during analysis!
@@ -249,11 +247,7 @@ def extract_maps(
                     pagraph = []
                 peaks = outputs_np[-1]
 
-                if imageindex in testIndices:
-                    trainingfram = False
-                else:
-                    trainingfram = True
-
+                trainingfram = imageindex not in testIndices
                 DATA[imageindex] = [
                     image,
                     scmap,
@@ -266,7 +260,7 @@ def extract_maps(
                     trainingfram,
                 ]
             Maps[trainFraction][Snapshots[snapindex]] = DATA
-    os.chdir(str(start_path))
+    os.chdir(start_path)
     return Maps
 
 
@@ -435,6 +429,7 @@ def extract_save_all_maps(
     )
 
     print("Saving plots...")
+    filepath = "{imname}_{map}_{label}_{shuffle}_{frac}_{snap}.png"
     for frac, values in data.items():
         if not dest_folder:
             dest_folder = os.path.join(
@@ -443,7 +438,6 @@ def extract_save_all_maps(
                 "maps",
             )
         attempt_to_make_folder(dest_folder)
-        filepath = "{imname}_{map}_{label}_{shuffle}_{frac}_{snap}.png"
         dest_path = os.path.join(dest_folder, filepath)
         for snap, maps in values.items():
             for imagenr in tqdm(maps):
@@ -468,12 +462,14 @@ def extract_save_all_maps(
                 to_plot = [
                     i for i, bpt in enumerate(bptnames) if bpt in comparisonbodyparts
                 ]
-                list_of_inds = []
-                for n, edge in enumerate(pafgraph):
-                    if any(ind in to_plot for ind in edge):
-                        list_of_inds.append(
-                            [(2 * n, 2 * n + 1), (bptnames[edge[0]], bptnames[edge[1]])]
-                        )
+                list_of_inds = [
+                    [
+                        (2 * n, 2 * n + 1),
+                        (bptnames[edge[0]], bptnames[edge[1]]),
+                    ]
+                    for n, edge in enumerate(pafgraph)
+                    if any(ind in to_plot for ind in edge)
+                ]
                 if len(to_plot) > 1:
                     map_ = scmap[:, :, to_plot].sum(axis=2)
                     locref_x_ = locref_x[:, :, to_plot].sum(axis=2)
@@ -529,7 +525,7 @@ def extract_save_all_maps(
                         fig3, _ = visualize_paf(image, paf[:, :, inds], colors=colors)
                         temp = dest_path.format(
                             imname=imname,
-                            map=f"paf",
+                            map="paf",
                             label=label,
                             shuffle=shuffle,
                             frac=frac,

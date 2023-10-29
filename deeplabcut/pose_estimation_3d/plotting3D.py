@@ -161,7 +161,7 @@ def create_labeled_video_3d(
         # triangulated file is a list which is always sorted as [triangulated.h5,camera-1.videotype,camera-2.videotype]
         # name for output video
         file_name = str(Path(triangulate_file).stem)
-        videooutname = os.path.join(path_h5_file, file_name + ".mp4")
+        videooutname = os.path.join(path_h5_file, f"{file_name}.mp4")
         if os.path.isfile(videooutname):
             print("Video already created...")
         else:
@@ -180,12 +180,7 @@ def create_labeled_video_3d(
             cam1_scorer = metadata_["scorer_name"][cam_names[0]]
             cam2_scorer = metadata_["scorer_name"][cam_names[1]]
             print(
-                "Creating 3D video from %s and %s using %s"
-                % (
-                    Path(cam1_view_video).name,
-                    Path(cam2_view_video).name,
-                    Path(triangulate_file).name,
-                )
+                f"Creating 3D video from {Path(cam1_view_video).name} and {Path(cam2_view_video).name} using {Path(triangulate_file).name}"
             )
 
             # Read the video files and corresponfing h5 files
@@ -259,7 +254,7 @@ def create_labeled_video_3d(
             end = min(end, min(len(vid_cam1), len(vid_cam2)))
             frames = list(range(start, end))
 
-            output_folder = Path(os.path.join(path_h5_file, "temp_" + file_name))
+            output_folder = Path(os.path.join(path_h5_file, f"temp_{file_name}"))
             output_folder.mkdir(parents=True, exist_ok=True)
 
             # Flatten the list of bodyparts to connect
@@ -373,11 +368,11 @@ def create_labeled_video_3d(
                     points_2d2.set_offsets(coords2.reshape((-1, 2)))
                     points_2d2.set_color(colors)
                     if draw_skeleton:
-                        segs3d = xyz[k][tuple([ind_links])].swapaxes(0, 1)
+                        segs3d = xyz[k][(ind_links, )].swapaxes(0, 1)
                         coll_3d.set_segments(segs3d)
-                        segs1 = xy1[k, :, :2][tuple([ind_links])].swapaxes(0, 1)
+                        segs1 = xy1[k, :, :2][(ind_links, )].swapaxes(0, 1)
                         coll1.set_segments(segs1)
-                        segs2 = xy2[k, :, :2][tuple([ind_links])].swapaxes(0, 1)
+                        segs2 = xy2[k, :, :2][(ind_links, )].swapaxes(0, 1)
                         coll2.set_segments(segs2)
 
                     writer.grab_frame()

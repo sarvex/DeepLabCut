@@ -29,7 +29,7 @@ try:
         refine_labels,
     )
     from deeplabcut.gui.widgets import SkeletonBuilder
-except (ModuleNotFoundError, ImportError):
+except ImportError:
     print(
         "DLC loaded in light mode; you cannot use any GUI (labeling, relabeling and standalone GUI)"
     )

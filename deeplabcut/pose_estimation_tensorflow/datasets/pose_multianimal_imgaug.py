@@ -173,15 +173,14 @@ class MAImgaugPoseDataset(BasePoseDataset):
                         kpts[kpt_id][-1] = 1
                 joints = np.concatenate([joint_ids, kpts], axis=1)
 
-            sparse_joints = []
-
-            for coord in joints:
-                if coord[1] != 0 and coord[3] > threshold:
-                    sparse_joints.append(coord[:3])
-
+            sparse_joints = [
+                coord[:3]
+                for coord in joints
+                if coord[1] != 0 and coord[3] > threshold
+            ]
             temp = np.array(sparse_joints)
             # we only do single animal here
-            item.joints.update({0: temp})
+            item.joints[0] = temp
             itemlist.append(item)
 
         self.has_gt = True
@@ -220,10 +219,7 @@ class MAImgaugPoseDataset(BasePoseDataset):
 
         if cfg.get("fliplr", False) and cfg.get("symmetric_pairs"):
             opt = cfg.get("fliplr", False)
-            if type(opt) == int:
-                p = opt
-            else:
-                p = 0.5
+            p = opt if type(opt) == int else 0.5
             pipeline.add(
                 sometimes(
                     augmentation.KeypointFliplr(
@@ -256,7 +252,7 @@ class MAImgaugPoseDataset(BasePoseDataset):
             pipeline.add(sometimes(iaa.ElasticTransformation(sigma=5)))
         if cfg.get("gaussian_noise", False):
             opt = cfg.get("gaussian_noise", False)
-            if type(opt) == int or type(opt) == float:
+            if type(opt) in [int, float]:
                 pipeline.add(
                     sometimes(
                         iaa.AdditiveGaussianNoise(
@@ -276,10 +272,7 @@ class MAImgaugPoseDataset(BasePoseDataset):
             pipeline.add(sometimes(iaa.Grayscale(alpha=(0.5, 1.0))))
 
         def get_aug_param(cfg_value):
-            if isinstance(cfg_value, dict):
-                opt = cfg_value
-            else:
-                opt = {}
+            opt = cfg_value if isinstance(cfg_value, dict) else {}
             return opt
 
         cfg_cnt = cfg.get("contrast", {})
@@ -549,9 +542,7 @@ class MAImgaugPoseDataset(BasePoseDataset):
                         shape=batch_images[i].shape,
                     )
                     im = kps.draw_on_image(batch_images[i])
-                    imageio.imwrite(
-                        os.path.join(self.cfg["project_path"], str(i) + ".png"), im
-                    )
+                    imageio.imwrite(os.path.join(self.cfg["project_path"], f"{str(i)}.png"), im)
 
             batch = {Batch.inputs: batch_images.astype(np.float64)}
             if self.has_gt:
@@ -592,9 +583,7 @@ class MAImgaugPoseDataset(BasePoseDataset):
         cfg = self.cfg
         if cfg["weigh_only_present_joints"]:
             weights = np.zeros(scmap_shape)
-            for k, j_id in enumerate(
-                np.concatenate(joint_id)
-            ):  # looping over all animals
+            for j_id in np.concatenate(joint_id):
                 weights[:, :, j_id] = 1.0
         else:
             weights = np.ones(scmap_shape)

@@ -355,8 +355,7 @@ class DictViewer(QtWidgets.QWidget):
         keys, value = self.walk_recursively_to_root(item)
         if item.parent() and item.childCount():  # Handle nested dict or list
             keys = [keys[0], value]
-        success = self.remove_key(self.cfg, keys, ind)
-        if success:
+        if success := self.remove_key(self.cfg, keys, ind):
             parent.removeChild(item)
 
     def remove_items(self):
@@ -381,8 +380,7 @@ class DictViewer(QtWidgets.QWidget):
         vals = []
         # Walk backwards across parents to get all keys
         while item is not None:
-            for i in range(item.columnCount() - 1, -1, -1):
-                vals.append(item.text(i))
+            vals.extend(item.text(i) for i in range(item.columnCount() - 1, -1, -1))
             item = item.parent()
         *keys, value = vals[::-1]
         return keys, value
@@ -438,7 +436,7 @@ class DictViewer(QtWidgets.QWidget):
             print("This should never be reached!")
 
     def add_row(self, key, val, tree_widget):
-        if isinstance(val, dict) or isinstance(val, list):
+        if isinstance(val, (dict, list)):
             item = QtWidgets.QTreeWidgetItem([key])
             self.populate_tree(val, item)
         else:
@@ -655,11 +653,11 @@ class SkeletonBuilder(QtWidgets.QDialog):
         self.lines.set_segments(self.segs)
 
     def export(self, *args):
-        inds_flat = set(ind for pair in self.inds for ind in pair)
+        inds_flat = {ind for pair in self.inds for ind in pair}
         unconnected = [i for i in range(len(self.xy)) if i not in inds_flat]
         if len(unconnected):
             warnings.warn(
-                f"You didn't connect all the bodyparts (which is fine!). This is just a note to let you know."
+                "You didn't connect all the bodyparts (which is fine!). This is just a note to let you know."
             )
         self.cfg["skeleton"] = [tuple(self.bpts[list(pair)]) for pair in self.inds]
         auxiliaryfunctions.write_config(self.config_path, self.cfg)
