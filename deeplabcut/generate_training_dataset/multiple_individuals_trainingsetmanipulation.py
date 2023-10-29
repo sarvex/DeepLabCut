@@ -209,7 +209,7 @@ def create_multianimaltraining_dataset(
 
     if net_type is None:  # loading & linking pretrained models
         net_type = cfg.get("default_net_type", "dlcrnet_ms5")
-    elif not any(net in net_type for net in ("resnet", "eff", "dlc", "mob")):
+    elif all(net not in net_type for net in ("resnet", "eff", "dlc", "mob")):
         raise ValueError(f"Unsupported network {net_type}.")
 
     multi_stage = False
@@ -219,7 +219,7 @@ def create_multianimaltraining_dataset(
         num_layers = re.findall("dlcr([0-9]*)", net_type)[0]
         if num_layers == "":
             num_layers = 50
-        net_type = "resnet_{}".format(num_layers)
+        net_type = f"resnet_{num_layers}"
         multi_stage = True
 
     dataset_type = "multi-animal-imgaug"
@@ -281,9 +281,9 @@ def create_multianimaltraining_dataset(
     else:
         Shuffles = [i for i in Shuffles if isinstance(i, int)]
 
+    splits = []
     # print(trainIndices,testIndices, Shuffles, augmenter_type,net_type)
     if trainIndices is None and testIndices is None:
-        splits = []
         for shuffle in Shuffles:  # Creating shuffles starting from 1
             for train_frac in cfg["TrainingFraction"]:
                 train_inds, test_inds = SplitTrials(range(len(Data)), train_frac)
@@ -293,7 +293,6 @@ def create_multianimaltraining_dataset(
             raise ValueError(
                 "Number of Shuffles and train and test indexes should be equal."
             )
-        splits = []
         for shuffle, (train_inds, test_inds) in enumerate(
             zip(trainIndices, testIndices)
         ):
@@ -470,7 +469,8 @@ def create_multianimaltraining_dataset(
                 dlcparent_path, "inference_cfg.yaml"
             )
             items2change = {
-                "minimalnumberofconnections": int(len(cfg["multianimalbodyparts"]) / 2),
+                "minimalnumberofconnections": len(cfg["multianimalbodyparts"])
+                // 2,
                 "topktoretain": len(cfg["individuals"]),
                 "withid": cfg.get("identity", False),
             }
@@ -481,8 +481,6 @@ def create_multianimaltraining_dataset(
             print(
                 "The training dataset is successfully created. Use the function 'train_network' to start training. Happy training!"
             )
-        else:
-            pass
 
 
 def convert_cropped_to_standard_dataset(
@@ -511,7 +509,7 @@ def convert_cropped_to_standard_dataset(
 
     if back_up:
         print("Backing up project...")
-        shutil.copytree(project_path, project_path + "_bak", symlinks=True)
+        shutil.copytree(project_path, f"{project_path}_bak", symlinks=True)
 
     if delete_crops:
         print("Deleting crops...")
@@ -540,7 +538,7 @@ def convert_cropped_to_standard_dataset(
         head = head.replace("_cropped", "")
         file, ext = filename.split(".")
         file = file.split("c")[0]
-        return os.path.join(head, file + "." + ext)
+        return os.path.join(head, f"{file}.{ext}")
 
     img_names_old = np.asarray(
         [strip_cropped_image_name(img) for img in df_old.index.to_list()]

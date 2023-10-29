@@ -38,8 +38,7 @@ def select_cropping_area(config, videos=None):
         videos = list(cfg.get("video_sets_original") or cfg["video_sets"])
 
     for video in videos:
-        coords = auxfun_videos.draw_bbox(video)
-        if coords:
+        if coords := auxfun_videos.draw_bbox(video):
             temp = {
                 "crop": ", ".join(
                     map(

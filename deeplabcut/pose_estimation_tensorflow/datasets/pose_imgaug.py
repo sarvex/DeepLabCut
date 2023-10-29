@@ -54,10 +54,7 @@ class ImgaugPoseDataset(BasePoseDataset):
         cfg["rotation"] = cfg.get("rotation", True)
         if cfg.get("rotation", True):  # i.e. pm 10 degrees
             opt = cfg.get("rotation", False)
-            if type(opt) == int:
-                cfg["rotation"] = cfg.get("rotation", 25)
-            else:
-                cfg["rotation"] = 25
+            cfg["rotation"] = cfg.get("rotation", 25) if type(opt) == int else 25
             cfg["rotratio"] = cfg.get(
                 "rotateratio", 0.4
             )  # what is the fraction of training samples with rotation augmentation?
@@ -79,15 +76,15 @@ class ImgaugPoseDataset(BasePoseDataset):
     def load_dataset(self):
         cfg = self.cfg
         file_name = os.path.join(self.cfg["project_path"], cfg["dataset"])
+        data = []
+        has_gt = True
+
         if ".mat" in file_name:  # legacy loader
             mlab = sio.loadmat(file_name)
             self.raw_data = mlab
             mlab = mlab["dataset"]
 
             num_images = mlab.shape[1]
-            data = []
-            has_gt = True
-
             for i in range(num_images):
                 sample = mlab[0, i]
 
@@ -112,8 +109,6 @@ class ImgaugPoseDataset(BasePoseDataset):
                     has_gt = False
                 data.append(item)
 
-            self.has_gt = has_gt
-            return data
         else:
             print("Loading pickle data with float coordinates!")
             file_name = cfg["dataset"].split(".")[0] + ".pickle"
@@ -122,8 +117,6 @@ class ImgaugPoseDataset(BasePoseDataset):
 
             self.raw_data = pickledata
             num_images = len(pickledata)  # mlab.shape[1]
-            data = []
-            has_gt = True
             for i in range(num_images):
                 sample = pickledata[i]  # mlab[0, i]
                 item = DataItem()
@@ -137,8 +130,9 @@ class ImgaugPoseDataset(BasePoseDataset):
                 else:
                     has_gt = False
                 data.append(item)
-            self.has_gt = has_gt
-            return data
+
+        self.has_gt = has_gt
+        return data
 
     def build_augmentation_pipeline(self, height=None, width=None, apply_prob=0.5):
         sometimes = lambda aug: iaa.Sometimes(apply_prob, aug)
@@ -154,10 +148,7 @@ class ImgaugPoseDataset(BasePoseDataset):
 
         if cfg.get("fliplr", False) and cfg.get("symmetric_pairs"):
             opt = cfg.get("fliplr", False)
-            if type(opt) == int:
-                p = opt
-            else:
-                p = 0.5
+            p = opt if type(opt) == int else 0.5
             pipeline.add(
                 sometimes(
                     augmentation.KeypointFliplr(
@@ -190,7 +181,7 @@ class ImgaugPoseDataset(BasePoseDataset):
 
         if cfg.get("gaussian_noise", False):
             opt = cfg.get("gaussian_noise", False)
-            if type(opt) == int or type(opt) == float:
+            if type(opt) in [int, float]:
                 pipeline.add(
                     sometimes(
                         iaa.AdditiveGaussianNoise(
@@ -210,10 +201,7 @@ class ImgaugPoseDataset(BasePoseDataset):
             pipeline.add(sometimes(iaa.Grayscale(alpha=(0.5, 1.0))))
 
         def get_aug_param(cfg_value):
-            if isinstance(cfg_value, dict):
-                opt = cfg_value
-            else:
-                opt = {}
+            opt = cfg_value if isinstance(cfg_value, dict) else {}
             return opt
 
         cfg_cnt = cfg.get("contrast", {})
@@ -224,14 +212,14 @@ class ImgaugPoseDataset(BasePoseDataset):
             aug_val = cfg_cnt.get(aug, False)
             cfg_cnt[aug] = aug_val
             if aug_val:
-                cfg_cnt[aug + "ratio"] = cfg_cnt.get(aug + "ratio", 0.1)
+                cfg_cnt[f"{aug}ratio"] = cfg_cnt.get(f"{aug}ratio", 0.1)
 
         convolution_aug = ["sharpen", "emboss", "edge"]
         for aug in convolution_aug:
             aug_val = cfg_cnv.get(aug, False)
             cfg_cnv[aug] = aug_val
             if aug_val:
-                cfg_cnv[aug + "ratio"] = cfg_cnv.get(aug + "ratio", 0.1)
+                cfg_cnv[f"{aug}ratio"] = cfg_cnv.get(f"{aug}ratio", 0.1)
 
         if cfg_cnt["histeq"]:
             opt = get_aug_param(cfg_cnt["histeq"])
@@ -280,10 +268,7 @@ class ImgaugPoseDataset(BasePoseDataset):
             pipeline.add(iaa.Sometimes(cfg_cnv["edgeratio"], iaa.EdgeDetect(**opt)))
 
         if height is not None and width is not None:
-            if not cfg.get("crop_by", False):
-                crop_by = 0.15
-            else:
-                crop_by = cfg.get("crop_by", False)
+            crop_by = 0.15 if not cfg.get("crop_by", False) else cfg.get("crop_by", False)
             pipeline.add(
                 iaa.Sometimes(
                     cfg.get("cropratio", 0.4),
@@ -471,10 +456,7 @@ class ImgaugPoseDataset(BasePoseDataset):
         if target_size_product > self.max_input_sizesquare:
             return False
 
-        if target_size_product < self.min_input_sizesquare:
-            return False
-
-        return True
+        return target_size_product >= self.min_input_sizesquare
 
     def gaussian_scmap(self, joint_id, coords, data_item, size, scale):
         # dist_thresh = float(self.cfg.pos_dist_thresh * scale)

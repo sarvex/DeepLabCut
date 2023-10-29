@@ -111,8 +111,7 @@ def create_tracking_dataset(
         dlc_cfg = load_config(str(path_test_config))
     except FileNotFoundError:
         raise FileNotFoundError(
-            "It seems the model for shuffle %s and trainFraction %s does not exist."
-            % (shuffle, trainFraction)
+            f"It seems the model for shuffle {shuffle} and trainFraction {trainFraction} does not exist."
         )
 
     # Check which snapshots are available and sort them by # iterations
@@ -141,7 +140,7 @@ def create_tracking_dataset(
     increasing_indices = np.argsort([int(m.split("-")[1]) for m in Snapshots])
     Snapshots = Snapshots[increasing_indices]
 
-    print("Using %s" % Snapshots[snapshotindex], "for model", modelfolder)
+    print(f"Using {Snapshots[snapshotindex]}", "for model", modelfolder)
 
     ##################################################
     # Load and setup CNN part detector
@@ -217,52 +216,47 @@ def create_tracking_dataset(
     ##################################################
     Videos = auxiliaryfunctions.get_list_of_videos(videos, videotype)
     if len(Videos) > 0:
-        if "multi-animal" in dlc_cfg["dataset_type"]:
-            for video in Videos:
-                extract_bpt_feature_from_video(
-                    video,
-                    DLCscorer,
-                    trainFraction,
-                    cfg,
-                    dlc_cfg,
-                    sess,
-                    inputs,
-                    outputs,
-                    extra_dict,
-                    destfolder=destfolder,
-                    robust_nframes=robust_nframes,
-                )
-
-            # should close tensorflow session here in order to free gpu
-            sess.close()
-            tf.keras.backend.clear_session()
-            create_triplets_dataset(
-                Videos,
-                DLCscorer,
-                track_method,
-                n_triplets=n_triplets,
-                destfolder=destfolder,
-            )
-
-        else:
+        if "multi-animal" not in dlc_cfg["dataset_type"]:
             raise NotImplementedError("not implemented")
 
-        os.chdir(str(start_path))
-        if "multi-animal" in dlc_cfg["dataset_type"]:
-            print(
-                "If the tracking is not satisfactory for some videos, consider expanding the training set. You can use the function 'extract_outlier_frames' to extract a few representative outlier frames."
+        for video in Videos:
+            extract_bpt_feature_from_video(
+                video,
+                DLCscorer,
+                trainFraction,
+                cfg,
+                dlc_cfg,
+                sess,
+                inputs,
+                outputs,
+                extra_dict,
+                destfolder=destfolder,
+                robust_nframes=robust_nframes,
             )
-        else:
+
+        # should close tensorflow session here in order to free gpu
+        sess.close()
+        tf.keras.backend.clear_session()
+        create_triplets_dataset(
+            Videos,
+            DLCscorer,
+            track_method,
+            n_triplets=n_triplets,
+            destfolder=destfolder,
+        )
+
+        os.chdir(str(start_path))
+        if "multi-animal" not in dlc_cfg["dataset_type"]:
             print(
                 "The videos are analyzed. Now your research can truly start! \n You can create labeled videos with 'create_labeled_video'"
             )
-            print(
-                "If the tracking is not satisfactory for some videos, consider expanding the training set. You can use the function 'extract_outlier_frames' to extract a few representative outlier frames."
-            )
-        return DLCscorer  # note: this is either DLCscorer or DLCscorerlegacy depending on what was used!
+        print(
+            "If the tracking is not satisfactory for some videos, consider expanding the training set. You can use the function 'extract_outlier_frames' to extract a few representative outlier frames."
+        )
     else:
         print("No video(s) were found. Please check your paths and/or 'videotype'.")
-        return DLCscorer
+
+    return DLCscorer  # note: this is either DLCscorer or DLCscorerlegacy depending on what was used!
 
 
 def analyze_videos(
@@ -704,23 +698,18 @@ def analyze_videos(
 
 def checkcropping(cfg, cap):
     print(
-        "Cropping based on the x1 = %s x2 = %s y1 = %s y2 = %s. You can adjust the cropping coordinates in the config.yaml file."
-        % (cfg["x1"], cfg["x2"], cfg["y1"], cfg["y2"])
+        f'Cropping based on the x1 = {cfg["x1"]} x2 = {cfg["x2"]} y1 = {cfg["y1"]} y2 = {cfg["y2"]}. You can adjust the cropping coordinates in the config.yaml file.'
     )
     nx = cfg["x2"] - cfg["x1"]
     ny = cfg["y2"] - cfg["y1"]
-    if nx > 0 and ny > 0:
-        pass
-    else:
+    if nx <= 0 or ny <= 0:
         raise Exception("Please check the order of cropping parameter!")
     if (
-        cfg["x1"] >= 0
-        and cfg["x2"] < int(cap.get(cv2.CAP_PROP_FRAME_WIDTH) + 1)
-        and cfg["y1"] >= 0
-        and cfg["y2"] < int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT) + 1)
+        cfg["x1"] < 0
+        or cfg["x2"] >= int(cap.get(cv2.CAP_PROP_FRAME_WIDTH) + 1)
+        or cfg["y1"] < 0
+        or cfg["y2"] >= int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT) + 1)
     ):
-        pass  # good cropping box
-    else:
         raise Exception("Please check the boundary of cropping!")
     return int(ny), int(nx)
 
@@ -955,15 +944,9 @@ def GetPoseDynamic(
                 frame = img_as_ubyte(originalframe[y1:y2, x1:x2])
 
             pose = predict.getpose(frame, dlc_cfg, sess, inputs, outputs).flatten()
-            detection = np.any(pose[2::3] > detectiontreshold)  # is anything detected?
-            if detection:
-                pose[0::3], pose[1::3] = (
-                    pose[0::3] + x1,
-                    pose[1::3] + y1,
-                )  # offset according to last bounding box
-                x1, x2, y1, y2 = getboundingbox(
-                    pose[0::3], pose[1::3], nx, ny, margin
-                )  # coordinates for next iteration
+            if detection := np.any(pose[2::3] > detectiontreshold):
+                pose[::3], pose[1::3] = pose[::3] + x1, pose[1::3] + y1
+                x1, x2, y1, y2 = getboundingbox(pose[::3], pose[1::3], nx, ny, margin)
                 if not detected:
                     detected = True  # object detected
             else:
@@ -1155,25 +1138,19 @@ def GetPosesofFrames(
         (nframes, dlc_cfg["num_outputs"] * 3 * len(dlc_cfg["all_joints_names"]))
     )
     batch_ind = 0  # keeps track of which image within a batch should be written to
-    batch_num = 0  # keeps track of which batch you are at
     if cfg["cropping"]:
         print(
-            "Cropping based on the x1 = %s x2 = %s y1 = %s y2 = %s. You can adjust the cropping coordinates in the config.yaml file."
-            % (cfg["x1"], cfg["x2"], cfg["y1"], cfg["y2"])
+            f'Cropping based on the x1 = {cfg["x1"]} x2 = {cfg["x2"]} y1 = {cfg["y1"]} y2 = {cfg["y2"]}. You can adjust the cropping coordinates in the config.yaml file.'
         )
         nx, ny = cfg["x2"] - cfg["x1"], cfg["y2"] - cfg["y1"]
-        if nx > 0 and ny > 0:
-            pass
-        else:
+        if nx <= 0 or ny <= 0:
             raise Exception("Please check the order of cropping parameter!")
         if (
-            cfg["x1"] >= 0
-            and cfg["x2"] < int(np.shape(im)[1])
-            and cfg["y1"] >= 0
-            and cfg["y2"] < int(np.shape(im)[0])
+            cfg["x1"] < 0
+            or cfg["x2"] >= int(np.shape(im)[1])
+            or cfg["y1"] < 0
+            or cfg["y2"] >= int(np.shape(im)[0])
         ):
-            pass  # good cropping box
-        else:
             raise Exception("Please check the boundary of cropping!")
 
     pbar = tqdm(total=nframes)
@@ -1200,6 +1177,7 @@ def GetPosesofFrames(
         frames = np.empty(
             (batchsize, ny, nx, 3), dtype="ubyte"
         )  # this keeps all the frames of a batch
+        batch_num = 0  # keeps track of which batch you are at
         for counter, framename in enumerate(framelist):
             im = imread(os.path.join(directory, framename), mode="skimage")
 
@@ -1312,8 +1290,7 @@ def analyze_time_lapse_frames(
         dlc_cfg = load_config(str(path_test_config))
     except FileNotFoundError:
         raise FileNotFoundError(
-            "It seems the model for shuffle %s and trainFraction %s does not exist."
-            % (shuffle, trainFraction)
+            f"It seems the model for shuffle {shuffle} and trainFraction {trainFraction} does not exist."
         )
     # Check which snapshots are available and sort them by # iterations
     try:
@@ -1341,7 +1318,7 @@ def analyze_time_lapse_frames(
     increasing_indices = np.argsort([int(m.split("-")[1]) for m in Snapshots])
     Snapshots = Snapshots[increasing_indices]
 
-    print("Using %s" % Snapshots[snapshotindex], "for model", modelfolder)
+    print(f"Using {Snapshots[snapshotindex]}", "for model", modelfolder)
 
     ##################################################
     # Load and setup CNN part detector
@@ -1435,7 +1412,7 @@ def analyze_time_lapse_frames(
                 }
                 metadata = {"data": dictionary}
 
-                print("Saving results in %s..." % (directory))
+                print(f"Saving results in {directory}...")
 
                 auxiliaryfunctions.save_data(
                     PredictedData[:nframes, :],

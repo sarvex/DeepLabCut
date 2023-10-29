@@ -233,7 +233,7 @@ def calc_rmse_from_obj(
             arr = np.stack([a.data for a in assemblies]).swapaxes(0, 1)
             data = [xy[~np.isnan(xy).any(axis=1)] for xy in arr[..., :2]]
             temp = {
-                "coordinates": tuple([data]),
+                "coordinates": (data,),
                 "confidence": list(np.expand_dims(arr[..., 2], axis=2)),
             }
             preds["predictions"][image] = temp

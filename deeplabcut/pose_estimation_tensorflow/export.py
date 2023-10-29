@@ -71,7 +71,7 @@ def write_deploy_config(configname, cfg):
             cfg_file[key] = cfg[key]
 
         # Adding default value for variable skeleton and skeleton_color for backward compatibility.
-        if not "skeleton" in cfg.keys():
+        if "skeleton" not in cfg.keys():
             cfg_file["skeleton"] = []
             cfg_file["skeleton_color"] = "black"
         ruamelFile.dump(cfg_file, cf)
@@ -119,16 +119,15 @@ def load_model(cfg, shuffle=1, trainingsetindex=0, TFGPUinference=True, modelpre
             )
         ),
     )
-    path_test_config = os.path.normpath(model_folder + "/test/pose_cfg.yaml")
-    path_train_config = os.path.normpath(model_folder + "/train/pose_cfg.yaml")
+    path_test_config = os.path.normpath(f"{model_folder}/test/pose_cfg.yaml")
+    path_train_config = os.path.normpath(f"{model_folder}/train/pose_cfg.yaml")
 
     try:
         dlc_cfg = load_config(str(path_train_config))
         # dlc_cfg_train = load_config(str(path_train_config))
     except FileNotFoundError:
         raise FileNotFoundError(
-            "It seems the model for shuffle %s and trainFraction %s does not exist."
-            % (shuffle, train_fraction)
+            f"It seems the model for shuffle {shuffle} and trainFraction {train_fraction} does not exist."
         )
 
     # Check which snapshots are available and sort them by # iterations
@@ -219,11 +218,11 @@ def tf_to_pb(sess, checkpoint, output, output_dir=None):
     ckpt_base = os.path.basename(checkpoint)
 
     # save graph to pbtxt file
-    pbtxt_file = os.path.normpath(output_dir + "/" + ckpt_base + ".pbtxt")
+    pbtxt_file = os.path.normpath(f"{output_dir}/{ckpt_base}.pbtxt")
     tf.io.write_graph(sess.graph.as_graph_def(), "", pbtxt_file, as_text=True)
 
     # create frozen graph from pbtxt file
-    pb_file = os.path.normpath(output_dir + "/" + ckpt_base + ".pb")
+    pb_file = os.path.normpath(f"{output_dir}/{ckpt_base}.pb")
     frozen_graph_def = tf.compat.v1.graph_util.convert_variables_to_constants(
         sess,
         sess.graph_def,
@@ -298,7 +297,7 @@ def export_model(
     try:
         cfg = auxiliaryfunctions.read_config(cfg_path)
     except FileNotFoundError:
-        FileNotFoundError("The config.yaml file at %s does not exist." % cfg_path)
+        FileNotFoundError(f"The config.yaml file at {cfg_path} does not exist.")
 
     cfg["project_path"] = os.path.dirname(os.path.realpath(cfg_path))
     cfg["iteration"] = iteration if iteration is not None else cfg["iteration"]
@@ -327,13 +326,12 @@ def export_model(
         cfg["iteration"],
         shuffle,
     )
-    full_export_dir = os.path.normpath(export_dir + "/" + sub_dir_name)
+    full_export_dir = os.path.normpath(f"{export_dir}/{sub_dir_name}")
 
     if os.path.isdir(full_export_dir):
         if not overwrite:
             raise FileExistsError(
-                "Export directory %s already exists. Terminating export..."
-                % full_export_dir
+                f"Export directory {full_export_dir} already exists. Terminating export..."
             )
     else:
         os.mkdir(full_export_dir)
@@ -342,25 +340,22 @@ def export_model(
 
     # sort dlc_cfg keys alphabetically, then save to pose_cfg.yaml in export directory
     dlc_cfg = dict(dlc_cfg)
-    sorted_cfg = {}
-    for key, value in sorted(dlc_cfg.items()):
-        if wipepaths:
-            if key in ["init_weights", "project_path", "snapshot_prefix"]:
-                sorted_cfg[key] = "TBA"
-            else:
-                sorted_cfg[key] = value
-        else:
-            sorted_cfg[key] = value
-
-    pose_cfg_file = os.path.normpath(full_export_dir + "/pose_cfg.yaml")
+    sorted_cfg = {
+        key: "TBA"
+        if wipepaths
+        and key in ["init_weights", "project_path", "snapshot_prefix"]
+        else value
+        for key, value in sorted(dlc_cfg.items())
+    }
+    pose_cfg_file = os.path.normpath(f"{full_export_dir}/pose_cfg.yaml")
     ruamel_file = ruamel.yaml.YAML()
     ruamel_file.dump(sorted_cfg, open(pose_cfg_file, "w"))
 
     ### copy checkpoint to export directory
 
-    ckpt_files = glob.glob(ckpt + "*")
+    ckpt_files = glob.glob(f"{ckpt}*")
     ckpt_dest = [
-        os.path.normpath(full_export_dir + "/" + os.path.basename(ckf))
+        os.path.normpath(f"{full_export_dir}/{os.path.basename(ckf)}")
         for ckf in ckpt_files
     ]
     for ckf, ckd in zip(ckpt_files, ckpt_dest):
@@ -373,6 +368,6 @@ def export_model(
     ### tar export directory
 
     if make_tar:
-        tar_name = os.path.normpath(full_export_dir + ".tar.gz")
+        tar_name = os.path.normpath(f"{full_export_dir}.tar.gz")
         with tarfile.open(tar_name, "w:gz") as tar:
             tar.add(full_export_dir, arcname=os.path.basename(full_export_dir))

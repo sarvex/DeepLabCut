@@ -164,10 +164,7 @@ def AnalyzeMultiAnimalVideo(
             "Starting to extract posture from the video(s) with batchsize:",
             dlc_cfg["batch_size"],
         )
-        if use_shelve:
-            shelf_path = dataname.split(".h5")[0] + "_full.pickle"
-        else:
-            shelf_path = ""
+        shelf_path = dataname.split(".h5")[0] + "_full.pickle" if use_shelve else ""
         if int(dlc_cfg["batch_size"]) > 1:
             PredicteData, nframes = GetPoseandCostsF(
                 cfg,
@@ -215,7 +212,7 @@ def AnalyzeMultiAnimalVideo(
             "cropping_parameters": coords,
         }
         metadata = {"data": dictionary}
-        print("Video Analyzed. Saving results in %s..." % (destfolder))
+        print(f"Video Analyzed. Saving results in {destfolder}...")
 
         if use_shelve:
             metadata_path = dataname.split(".h5")[0] + "_meta.pickle"
@@ -280,7 +277,7 @@ def GetPoseandCostsF_from_assemblies(
 
     while cap.video.isOpened():
         frame = cap.read_frame(crop=cfg["cropping"])
-        key = "frame" + str(counter).zfill(strwidth)
+        key = f"frame{str(counter).zfill(strwidth)}"
         if frame is not None:
             # Avoid overwriting data already on the shelf
             if key in feature_dict:
@@ -301,11 +298,11 @@ def GetPoseandCostsF_from_assemblies(
 
                 D, features = preds
                 for i, (ind, data) in enumerate(zip(inds, D)):
-                    PredicteData["frame" + str(ind).zfill(strwidth)] = data
+                    PredicteData[f"frame{str(ind).zfill(strwidth)}"] = data
                     raw_coords = assemblies.get(ind)
                     if raw_coords is None:
                         continue
-                    fname = "frame" + str(ind).zfill(strwidth)
+                    fname = f"frame{str(ind).zfill(strwidth)}"
                     feature_dict[fname] = _get_features_dict(
                         raw_coords,
                         features[i],
@@ -327,11 +324,11 @@ def GetPoseandCostsF_from_assemblies(
 
                 D, features = preds
                 for i, (ind, data) in enumerate(zip(inds, D)):
-                    PredicteData["frame" + str(ind).zfill(strwidth)] = data
+                    PredicteData[f"frame{str(ind).zfill(strwidth)}"] = data
                     raw_coords = assemblies.get(ind)
                     if raw_coords is None:
                         continue
-                    fname = "frame" + str(ind).zfill(strwidth)
+                    fname = f"frame{str(ind).zfill(strwidth)}"
                     feature_dict[fname] = _get_features_dict(
                         raw_coords,
                         features[i],
@@ -411,7 +408,7 @@ def GetPoseandCostsF(
     }
     while cap.video.isOpened():
         frame = cap.read_frame(crop=cfg["cropping"])
-        key = "frame" + str(counter).zfill(strwidth)
+        key = f"frame{str(counter).zfill(strwidth)}"
         if frame is not None:
             # Avoid overwriting data already on the shelf
             if isinstance(db, shelve.Shelf) and key in db:
@@ -430,7 +427,7 @@ def GetPoseandCostsF(
                     outputs,
                 )
                 for ind, data in zip(inds, D):
-                    db["frame" + str(ind).zfill(strwidth)] = data
+                    db[f"frame{str(ind).zfill(strwidth)}"] = data
                 del D
                 batch_ind = 0
                 inds.clear()
@@ -447,7 +444,7 @@ def GetPoseandCostsF(
                     outputs,
                 )
                 for ind, data in zip(inds, D):
-                    db["frame" + str(ind).zfill(strwidth)] = data
+                    db[f"frame{str(ind).zfill(strwidth)}"] = data
                 del D
             break
         counter += 1
@@ -493,7 +490,7 @@ def GetPoseandCostsS(cfg, dlc_cfg, sess, inputs, outputs, cap, nframes, shelf_pa
     counter = 0
     while cap.video.isOpened():
         frame = cap.read_frame(crop=cfg["cropping"])
-        key = "frame" + str(counter).zfill(strwidth)
+        key = f"frame{str(counter).zfill(strwidth)}"
         if frame is not None:
             # Avoid overwriting data already on the shelf
             if isinstance(db, shelve.Shelf) and key in db:

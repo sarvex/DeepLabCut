@@ -221,10 +221,7 @@ def predict_batched_peaks_and_costs(
 
     locrefs = np.reshape(locrefs, (*locrefs.shape[:3], -1, 2))
     locrefs *= pose_cfg["locref_stdev"]
-    if pafs:
-        pafs = np.reshape(pafs[0], (*pafs[0].shape[:3], -1, 2))
-    else:
-        pafs = None
+    pafs = np.reshape(pafs[0], (*pafs[0].shape[:3], -1, 2)) if pafs else None
     graph = pose_cfg["partaffinityfield_graph"]
     limbs = pose_cfg.get("paf_best", np.arange(len(graph)))
     graph = [graph[l] for l in limbs]
@@ -252,10 +249,7 @@ def predict_batched_peaks_and_costs(
         )
         for i, costs in enumerate(costs_gt):
             preds[i]["groundtruth_costs"] = costs
-    if extra_dict:
-        return preds, features
-    else:
-        return preds
+    return (preds, features) if extra_dict else preds
 
 
 def find_local_maxima(scmap, radius, threshold):

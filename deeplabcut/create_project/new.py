@@ -117,7 +117,7 @@ def create_new_project(
     date = dt.today()
     month = months_3letter[date.month]
     day = date.day
-    d = str(month[0:3] + str(day))
+    d = str(month[:3] + str(day))
     date = dt.today().strftime("%Y-%m-%d")
     if working_directory is None:
         working_directory = "."
@@ -127,7 +127,7 @@ def create_new_project(
 
     # Create project and sub-directories
     if not DEBUG and project_path.exists():
-        print('Project "{}" already exists!'.format(project_path))
+        print(f'Project "{project_path}" already exists!')
         return os.path.join(str(project_path), "config.yaml")
     video_path = project_path / "videos"
     data_path = project_path / "labeled-data"
@@ -135,7 +135,7 @@ def create_new_project(
     results_path = project_path / "dlc-models"
     for p in [video_path, data_path, shuffles_path, results_path]:
         p.mkdir(parents=True, exist_ok=DEBUG)
-        print('Created "{}"'.format(p))
+        print(f'Created "{p}"')
 
     # Add all videos in the folder. Multiple folders can be passed in a list, similar to the video files. Folders and video files can also be passed!
     vids = []
@@ -146,7 +146,7 @@ def create_new_project(
                 os.path.join(i, vp) for vp in os.listdir(i) if vp.endswith(videotype)
             ]
             vids = vids + vids_in_dir
-            if len(vids_in_dir) == 0:
+            if not vids_in_dir:
                 print("No videos found in", i)
                 print(
                     "Perhaps change the videotype, which is currently set to:",
@@ -185,24 +185,24 @@ def create_new_project(
         print("Attempting to create a symbolic link of the video ...")
         for src, dst in zip(videos, destinations):
             if dst.exists() and not DEBUG:
-                raise FileExistsError("Video {} exists already!".format(dst))
+                raise FileExistsError(f"Video {dst} exists already!")
             try:
                 src = str(src)
                 dst = str(dst)
                 os.symlink(src, dst)
-                print("Created the symlink of {} to {}".format(src, dst))
+                print(f"Created the symlink of {src} to {dst}")
             except OSError:
                 try:
                     import subprocess
 
-                    subprocess.check_call("mklink %s %s" % (dst, src), shell=True)
+                    subprocess.check_call(f"mklink {dst} {src}", shell=True)
                 except (OSError, subprocess.CalledProcessError):
                     print(
                         "Symlink creation impossible (exFat architecture?): "
                         "copying the video instead."
                     )
                     shutil.copy(os.fspath(src), os.fspath(dst))
-                    print("{} copied to {}".format(src, dst))
+                    print(f"{src} copied to {dst}")
             videos = destinations
 
     if copy_videos:
@@ -291,7 +291,7 @@ def create_new_project(
     # Write dictionary to yaml  config file
     auxiliaryfunctions.write_config(projconfigfile, cfg_file)
 
-    print('Generated "{}"'.format(project_path / "config.yaml"))
+    print(f'Generated "{project_path / "config.yaml"}"')
     print(
         "\nA new project with name %s is created at %s and a configurable file (config.yaml) is stored there. Change the parameters in this file to adapt to your project's needs.\n Once you have changed the configuration file, use the function 'extract_frames' to select frames for labeling.\n. [OPTIONAL] Use the function 'add_new_videos' to add new videos to your project (at any stage)."
         % (project_name, str(wd))

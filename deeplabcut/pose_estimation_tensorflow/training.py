@@ -196,33 +196,23 @@ def train_network(
             )
 
             print("Selecting multi-animal trainer")
-            train(
-                str(poseconfigfile),
-                displayiters,
-                saveiters,
-                maxiters,
-                max_to_keep=max_snapshots_to_keep,
-                keepdeconvweights=keepdeconvweights,
-                allow_growth=allow_growth,
-            )  # pass on path and file name for pose_cfg.yaml!
         else:
             from deeplabcut.pose_estimation_tensorflow.core.train import train
 
             print("Selecting single-animal trainer")
-            train(
-                str(poseconfigfile),
-                displayiters,
-                saveiters,
-                maxiters,
-                max_to_keep=max_snapshots_to_keep,
-                keepdeconvweights=keepdeconvweights,
-                allow_growth=allow_growth,
-            )  # pass on path and file name for pose_cfg.yaml!
-
+        train(
+            str(poseconfigfile),
+            displayiters,
+            saveiters,
+            maxiters,
+            max_to_keep=max_snapshots_to_keep,
+            keepdeconvweights=keepdeconvweights,
+            allow_growth=allow_growth,
+        )  # pass on path and file name for pose_cfg.yaml!
     except BaseException as e:
         raise e
     finally:
-        os.chdir(str(start_path))
+        os.chdir(start_path)
     print(
         "The network is now trained and ready to evaluate. Use the function 'evaluate_network' to evaluate the network."
     )

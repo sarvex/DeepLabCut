@@ -32,7 +32,7 @@ class UnravelIndex(FrontReplacementOp):
         dim1 = StridedSlice(
             graph,
             dict(
-                name=inp0.name + "/dim1",
+                name=f"{inp0.name}/dim1",
                 begin_mask=[1],
                 end_mask=[1],
                 shrink_axis_mask=[0],
@@ -41,20 +41,22 @@ class UnravelIndex(FrontReplacementOp):
             ),
         ).create_node([inp1, begin_id, end_id])
 
-        rows = Div(graph, dict(name=node.name + "/rows")).create_node([inp0, dim1])
+        rows = Div(graph, dict(name=f"{node.name}/rows")).create_node([inp0, dim1])
 
         inp0 = Cast(
-            graph, dict(name=inp0.name + "/fp32", dst_type=np.float32)
+            graph, dict(name=f"{inp0.name}/fp32", dst_type=np.float32)
         ).create_node([inp0])
         dim1 = Cast(
-            graph, dict(name=dim1.name + "/fp32", dst_type=np.float32)
+            graph, dict(name=f"{dim1.name}/fp32", dst_type=np.float32)
         ).create_node([dim1])
-        cols = FloorMod(graph, dict(name=node.name + "/cols")).create_node([inp0, dim1])
+        cols = FloorMod(graph, dict(name=f"{node.name}/cols")).create_node(
+            [inp0, dim1]
+        )
         cols = Cast(
-            graph, dict(name=cols.name + "/i64", dst_type=np.int64)
+            graph, dict(name=f"{cols.name}/i64", dst_type=np.int64)
         ).create_node([cols])
 
-        concat = PackOp(graph, dict(name=node.name + "/merged", axis=0)).create_node(
-            [rows, cols]
-        )
+        concat = PackOp(
+            graph, dict(name=f"{node.name}/merged", axis=0)
+        ).create_node([rows, cols])
         return [concat.id]

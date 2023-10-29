@@ -183,7 +183,7 @@ class DeterministicPoseDataset(BasePoseDataset):
                 )
 
         img = imresize(image, scale) if scale != 1 else image
-        scaled_img_size = np.array(img.shape[0:2])
+        scaled_img_size = np.array(img.shape[:2])
 
         if mirror:
             img = np.fliplr(img)

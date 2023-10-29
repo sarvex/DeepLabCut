@@ -28,7 +28,7 @@ class ProjectCreator(QtWidgets.QDialog):
         self.setWindowTitle("New Project")
         self.setModal(True)
         self.setMinimumWidth(parent.screen_width // 2)
-        today = datetime.today().strftime("%Y-%m-%d")
+        today = datetime.now().strftime("%Y-%m-%d")
         self.name_default = "-".join(("{}", "{}", today))
         self.proj_default = ""
         self.exp_default = ""
@@ -177,10 +177,10 @@ class ProjectCreator(QtWidgets.QDialog):
                     loaded=True,
                 )
         except FileExistsError:
-            print('Project "{}" already exists!'.format(self.proj_default))
+            print(f'Project "{self.proj_default}" already exists!')
             return
 
-        msg = QtWidgets.QMessageBox(text=f"New project created")
+        msg = QtWidgets.QMessageBox(text="New project created")
         msg.setIcon(QtWidgets.QMessageBox.Information)
         msg.exec_()
 

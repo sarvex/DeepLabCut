@@ -43,10 +43,7 @@ def _set_arg_scope_defaults(defaults):
     Yields:
       context manager where all defaults are set.
     """
-    if hasattr(defaults, "items"):
-        items = list(defaults.items())
-    else:
-        items = defaults
+    items = list(defaults.items()) if hasattr(defaults, "items") else defaults
     if not items:
         yield
     else:
@@ -99,8 +96,9 @@ def safe_arg_scope(funcs, **kwargs):
     Note: can be useful if None value should be interpreted as "do not overwrite
       this parameter value".
     """
-    filtered_args = {name: value for name, value in kwargs.items() if value is not None}
-    if filtered_args:
+    if filtered_args := {
+        name: value for name, value in kwargs.items() if value is not None
+    }:
         return slim.arg_scope(funcs, **filtered_args)
     else:
         return NoOpScope()
@@ -188,11 +186,11 @@ def mobilenet_base(  # pylint: disable=invalid-name
     # c) set all defaults
     # d) set all extra overrides.
     # pylint: disable=g-backslash-continuation
-    with _scope_all(scope, default_scope="Mobilenet"), safe_arg_scope(
-        [slim.batch_norm], is_training=is_training
-    ), _set_arg_scope_defaults(conv_defs_defaults), _set_arg_scope_defaults(
-        conv_defs_overrides
-    ):
+    with (_scope_all(scope, default_scope="Mobilenet"), safe_arg_scope(
+            [slim.batch_norm], is_training=is_training
+        ), _set_arg_scope_defaults(conv_defs_defaults), _set_arg_scope_defaults(
+            conv_defs_overrides
+        )):
         # The current_stride variable keeps track of the output stride of the
         # activations, i.e., the running product of convolution strides up to the
         # current network layer. This allows us to invoke atrous convolution
@@ -260,7 +258,7 @@ def mobilenet_base(  # pylint: disable=invalid-name
             scope = os.path.dirname(t.name)
             bn = os.path.basename(t.name)
             if scope in scopes and t.name.endswith("output"):
-                end_points[scopes[scope] + "/" + bn] = t.outputs[0]
+                end_points[f"{scopes[scope]}/{bn}"] = t.outputs[0]
         return net, end_points
 
 

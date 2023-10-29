@@ -134,7 +134,7 @@ class KeypointAwareCropToFixedSize(iaa.CropToFixedSize):
 
 
 def update_crop_size(pipeline, width, height):
-    aug = pipeline.find_augmenters_by_name("kptscrop")
-    if not aug:
+    if aug := pipeline.find_augmenters_by_name("kptscrop"):
+        aug[0].size = width, height
+    else:
         return
-    aug[0].size = width, height

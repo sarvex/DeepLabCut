@@ -9,6 +9,7 @@ This script tests various functionalities in an automatic way.
 It produces nothing of interest scientifically.
 """
 
+
 task = "Testcore"  # Enter the name of your experiment Task
 scorer = "Mackenzie"  # Enter the name of the experimenter/labeler
 
@@ -36,7 +37,7 @@ video = [
         "examples",
         "Reaching-Mackenzie-2018-08-30",
         "videos",
-        videoname + ".avi",
+        f"{videoname}.avi",
     )
 ]
 # For testing a color video:
@@ -51,7 +52,7 @@ net_type = "resnet_50"  #'mobilenet_v2_0.35' #'resnet_50'
 augmenter_type = "default"
 augmenter_type2 = "imgaug"
 
-if platform.system() == "Darwin" or platform.system() == "Windows":
+if platform.system() in ["Darwin", "Windows"]:
     print("On Windows/OSX tensorpack is not tested by default.")
     augmenter_type3 = "imgaug"
 else:
@@ -85,17 +86,13 @@ for index, bodypart in enumerate(cfg["bodyparts"]):
         columns=columnindex,
         index=[os.path.join("labeled-data", videoname, fn) for fn in frames],
     )
-    if index == 0:
-        dataFrame = frame
-    else:
-        dataFrame = pd.concat([dataFrame, frame], axis=1)
-
+    dataFrame = frame if index == 0 else pd.concat([dataFrame, frame], axis=1)
 dataFrame.to_csv(
     os.path.join(
         cfg["project_path"],
         "labeled-data",
         videoname,
-        "CollectedData_" + scorer + ".csv",
+        f"CollectedData_{scorer}.csv",
     )
 )
 dataFrame.to_hdf(
@@ -103,7 +100,7 @@ dataFrame.to_hdf(
         cfg["project_path"],
         "labeled-data",
         videoname,
-        "CollectedData_" + scorer + ".h5",
+        f"CollectedData_{scorer}.h5",
     ),
     "df_with_missing",
     format="table",
@@ -147,7 +144,7 @@ dlc.train_network(path_config_file)
 print("EVALUATE")
 dlc.evaluate_network(path_config_file, plotting=True)
 
-videotest = os.path.join(cfg["project_path"], "videos", videoname + ".avi")
+videotest = os.path.join(cfg["project_path"], "videos", f"{videoname}.avi")
 
 print(videotest)
 

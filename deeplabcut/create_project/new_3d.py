@@ -51,7 +51,7 @@ def create_new_project_3d(project, experimenter, num_cameras=2, working_director
     date = dt.today()
     month = date.strftime("%B")
     day = date.day
-    d = str(month[0:3] + str(day))
+    d = str(month[:3] + str(day))
     date = dt.today().strftime("%Y-%m-%d")
 
     if working_directory is None:
@@ -64,7 +64,7 @@ def create_new_project_3d(project, experimenter, num_cameras=2, working_director
     project_path = wd / project_name
     # Create project and sub-directories
     if not DEBUG and project_path.exists():
-        print('Project "{}" already exists!'.format(project_path))
+        print(f'Project "{project_path}" already exists!')
         return
 
     camera_matrix_path = project_path / "camera_matrix"
@@ -81,7 +81,7 @@ def create_new_project_3d(project, experimenter, num_cameras=2, working_director
         path_removed_images,
     ]:
         p.mkdir(parents=True, exist_ok=DEBUG)
-        print('Created "{}"'.format(p))
+        print(f'Created "{p}"')
 
     # Create config file
     cfg_file_3d, ruamelFile_3d = auxiliaryfunctions.create_config_template_3d()
@@ -99,7 +99,7 @@ def create_new_project_3d(project, experimenter, num_cameras=2, working_director
     cfg_file_3d["pcutoff"] = 0.4
     cfg_file_3d["num_cameras"] = num_cameras
     cfg_file_3d["camera_names"] = [
-        str("camera-" + str(i)) for i in range(1, num_cameras + 1)
+        str(f"camera-{str(i)}") for i in range(1, num_cameras + 1)
     ]
     cfg_file_3d["scorername_3d"] = "DLC_3D"
 
@@ -118,19 +118,19 @@ def create_new_project_3d(project, experimenter, num_cameras=2, working_director
             + "-Mackenzie-2019-06-05/config.yaml"
         )
         cfg_file_3d.insert(
-            len(cfg_file_3d), str("config_file_camera-" + str(i + 1)), path
+            len(cfg_file_3d), str(f"config_file_camera-{str(i + 1)}"), path
         )
 
     for i in range(num_cameras):
-        cfg_file_3d.insert(len(cfg_file_3d), str("shuffle_camera-" + str(i + 1)), 1)
+        cfg_file_3d.insert(len(cfg_file_3d), str(f"shuffle_camera-{str(i + 1)}"), 1)
         cfg_file_3d.insert(
-            len(cfg_file_3d), str("trainingsetindex_camera-" + str(i + 1)), 0
+            len(cfg_file_3d), str(f"trainingsetindex_camera-{str(i + 1)}"), 0
         )
 
     projconfigfile = os.path.join(str(project_path), "config.yaml")
     auxiliaryfunctions.write_config_3d(projconfigfile, cfg_file_3d)
 
-    print('Generated "{}"'.format(project_path / "config.yaml"))
+    print(f'Generated "{project_path / "config.yaml"}"')
     print(
         "\nA new project with name %s is created at %s and a configurable file (config.yaml) is stored there. If you have not calibrated the cameras, then use the function 'calibrate_camera' to start calibrating the camera otherwise use the function ``triangulate`` to triangulate the dataframe"
         % (project_name, wd)

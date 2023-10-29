@@ -78,7 +78,7 @@ class OpenProject(QtWidgets.QDialog):
             msg.setWindowTitle("Error")
             msg.setMinimumWidth(400)
             self.logo_dir = os.path.dirname(os.path.realpath("logo.png")) + os.path.sep
-            self.logo = self.logo_dir + "/assets/logo.png"
+            self.logo = f"{self.logo_dir}/assets/logo.png"
             msg.setWindowIcon(QIcon(self.logo))
             msg.setStandardButtons(QtWidgets.QMessageBox.Ok)
             msg.exec_()
@@ -86,7 +86,7 @@ class OpenProject(QtWidgets.QDialog):
             self.loaded = False
         else:
             self.logo_dir = os.path.dirname(os.path.realpath("logo.png")) + os.path.sep
-            self.logo = self.logo_dir + "/assets/logo.png"
+            self.logo = f"{self.logo_dir}/assets/logo.png"
 
             self.loaded = True
             self.accept()

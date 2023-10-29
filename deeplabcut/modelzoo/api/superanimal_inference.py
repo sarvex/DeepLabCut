@@ -112,11 +112,10 @@ def _average_multiple_scale_preds(
     xyp[mask] = np.nan
     coords = np.nanmedian(xyp[..., :2], axis=0)
     conf = np.nanmedian(xyp[..., 2], axis=0)
-    dict_ = {
+    return {
         "coordinates": [list(coords[:, None])],
         "confidence": list(conf[:, None].astype(np.float32)),
     }
-    return dict_
 
 
 def _video_inference(
@@ -168,29 +167,25 @@ def _video_inference(
             inds.append(counter)
             if batch_ind == batchsize - 1:
                 preds = []
-                for scale_id, batched_frames in enumerate(multi_scale_batched_frames):
+                for batched_frames in multi_scale_batched_frames:
                     # batch full, start true inferencing
                     D = predict.predict_batched_peaks_and_costs(
                         test_cfg, batched_frames, sess, inputs, outputs
                     )
                     preds.append(D)
-                    # only do this when animal is detected
                 ind_start = inds[0]
                 for i in range(batchsize):
                     ind = ind_start + i
-                    PredicteData["frame" + str(ind).zfill(strwidth)] = []
+                    PredicteData[f"frame{str(ind).zfill(strwidth)}"] = []
 
                     for scale_id in range(len(scale_list)):
-                        if i >= len(preds[scale_id]):
-                            pred = []
-                        else:
-                            pred = preds[scale_id][i]
+                        pred = [] if i >= len(preds[scale_id]) else preds[scale_id][i]
                         if pred != []:
                             pred = _project_pred_to_original_size(
                                 pred, old_shape, frame_shapes[scale_id]
                             )
 
-                        PredicteData["frame" + str(ind).zfill(strwidth)].append(pred)
+                        PredicteData[f"frame{str(ind).zfill(strwidth)}"].append(pred)
 
                 batch_ind = 0
                 inds.clear()
@@ -200,7 +195,7 @@ def _video_inference(
             # in case we reach the end of the video
             if batch_ind > 0:
                 preds = []
-                for scale_id, batched_frames in enumerate(multi_scale_batched_frames):
+                for batched_frames in multi_scale_batched_frames:
                     D = predict.predict_batched_peaks_and_costs(
                         test_cfg,
                         batched_frames,
@@ -216,17 +211,14 @@ def _video_inference(
                     ind = ind_start + i
                     if ind >= nframes:
                         break
-                    PredicteData["frame" + str(ind).zfill(strwidth)] = []
+                    PredicteData[f"frame{str(ind).zfill(strwidth)}"] = []
                     for scale_id in range(len(scale_list)):
-                        if i >= len(preds[scale_id]):
-                            pred = []
-                        else:
-                            pred = preds[scale_id][i]
+                        pred = [] if i >= len(preds[scale_id]) else preds[scale_id][i]
                         if pred != []:
                             pred = _project_pred_to_original_size(
                                 pred, old_shape, frame_shapes[scale_id]
                             )
-                        PredicteData["frame" + str(ind).zfill(strwidth)].append(pred)
+                        PredicteData[f"frame{str(ind).zfill(strwidth)}"].append(pred)
 
             break
 
@@ -308,12 +300,9 @@ def video_inference(
     test_cfg["partaffinityfield_graph"] = []
     test_cfg["partaffinityfield_predict"] = False
 
-    if init_weights != "":
-        test_cfg["init_weights"] = init_weights
-    else:
+    if init_weights == "":
         init_weights = os.path.abspath(snapshots[0]).replace(".index", "")
-        test_cfg["init_weights"] = init_weights
-
+    test_cfg["init_weights"] = init_weights
     test_cfg["num_outputs"] = 1
     test_cfg["batch_size"] = batchsize
 
@@ -403,7 +392,7 @@ def video_inference(
                 "cropping_parameters": coords,
             }
             metadata = {"data": dictionary}
-            print("Saving results in %s..." % (destfolder))
+            print(f"Saving results in {destfolder}...")
 
             metadata_path = dataname.split(".h5")[0] + "_meta.pickle"
 
@@ -421,7 +410,7 @@ def video_inference(
             data = np.full((len(imagenames), len(columnindex)), np.nan)
             for i, imagename in enumerate(imagenames):
                 dict_ = PredicteData[imagename]
-                if dict_ == [] or dict_ == [[]]:
+                if dict_ in [[], [[]]]:
                     data[i, 2::3] = 0
                 else:
                     keypoints = dict_["coordinates"][0]

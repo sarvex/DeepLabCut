@@ -121,10 +121,7 @@ def getpose(image, cfg, sess, inputs, outputs, outall=False):
         pose = multi_pose_predict(scmap, locref, cfg["stride"], num_outputs)
     else:
         pose = argmax_pose_predict(scmap, locref, cfg["stride"])
-    if outall:
-        return scmap, locref, pose
-    else:
-        return pose
+    return (scmap, locref, pose) if outall else pose
 
 
 ## Functions below implement are for batch sizes > 1:
@@ -197,10 +194,7 @@ def getposeNP(image, cfg, sess, inputs, outputs, outall=False):
     pose[:, 1::3] = Ys.reshape(batchsize, -1)
     pose[:, 2::3] = Ps.reshape(batchsize, -1)
 
-    if outall:
-        return scmap, locref, pose
-    else:
-        return pose
+    return (scmap, locref, pose) if outall else pose
 
 
 ### Code for TF inference on GPU

@@ -88,58 +88,50 @@ class CreateTrainingDataset(DefaultTab):
 
         if self.model_comparison:
             raise NotImplementedError
-            # TODO: finish model_comparison
-            deeplabcut.create_training_model_comparison(
-                config_file,
-                num_shuffles=shuffle,
-                net_types=self.net_type,
-                augmenter_types=self.aug_type,
+        if self.root.is_multianimal:
+            deeplabcut.create_multianimaltraining_dataset(
+                self.root.config,
+                shuffle,
+                Shuffles=[self.shuffle.value()],
+                net_type=self.net_choice.currentText(),
             )
         else:
-            if self.root.is_multianimal:
-                deeplabcut.create_multianimaltraining_dataset(
-                    self.root.config,
-                    shuffle,
-                    Shuffles=[self.shuffle.value()],
-                    net_type=self.net_choice.currentText(),
-                )
-            else:
-                deeplabcut.create_training_dataset(
-                    self.root.config,
-                    shuffle,
-                    Shuffles=[self.shuffle.value()],
-                    net_type=self.net_choice.currentText(),
-                    augmenter_type=self.aug_choice.currentText(),
-                )
-            # Check that training data files were indeed created.
-            trainingsetfolder = get_training_set_folder(self.root.cfg)
-            filenames = list(
-                get_data_and_metadata_filenames(
-                    trainingsetfolder,
-                    self.root.cfg["TrainingFraction"][0],
-                    self.shuffle.value(),
-                    self.root.cfg,
-                )
+            deeplabcut.create_training_dataset(
+                self.root.config,
+                shuffle,
+                Shuffles=[self.shuffle.value()],
+                net_type=self.net_choice.currentText(),
+                augmenter_type=self.aug_choice.currentText(),
             )
-            if self.root.is_multianimal:
-                filenames[0] = filenames[0].replace("mat", "pickle")
-            if all(
-                os.path.exists(os.path.join(self.root.project_folder, file))
-                for file in filenames
-            ):
-                msg = _create_message_box(
-                    "The training dataset is successfully created.",
-                    "Use the function 'train_network' to start training. Happy training!",
-                )
-                msg.exec_()
-                self.root.writer.write("Training dataset successfully created.")
-            else:
-                msg = _create_message_box(
-                    "The training dataset could not be created.",
-                    "Make sure there are annotated data under labeled-data.",
-                )
-                msg.exec_()
-                self.root.writer.write("Training dataset creation failed.")
+        # Check that training data files were indeed created.
+        trainingsetfolder = get_training_set_folder(self.root.cfg)
+        filenames = list(
+            get_data_and_metadata_filenames(
+                trainingsetfolder,
+                self.root.cfg["TrainingFraction"][0],
+                self.shuffle.value(),
+                self.root.cfg,
+            )
+        )
+        if self.root.is_multianimal:
+            filenames[0] = filenames[0].replace("mat", "pickle")
+        if all(
+            os.path.exists(os.path.join(self.root.project_folder, file))
+            for file in filenames
+        ):
+            msg = _create_message_box(
+                "The training dataset is successfully created.",
+                "Use the function 'train_network' to start training. Happy training!",
+            )
+            msg.exec_()
+            self.root.writer.write("Training dataset successfully created.")
+        else:
+            msg = _create_message_box(
+                "The training dataset could not be created.",
+                "Make sure there are annotated data under labeled-data.",
+            )
+            msg.exec_()
+            self.root.writer.write("Training dataset creation failed.")
 
 
 def _create_message_box(text, info_text):
@@ -151,7 +143,7 @@ def _create_message_box(text, info_text):
     msg.setWindowTitle("Info")
     msg.setMinimumWidth(900)
     logo_dir = os.path.dirname(os.path.realpath("logo.png")) + os.path.sep
-    logo = logo_dir + "/assets/logo.png"
+    logo = f"{logo_dir}/assets/logo.png"
     msg.setWindowIcon(QIcon(logo))
     msg.setStandardButtons(QtWidgets.QMessageBox.Ok)
     return msg

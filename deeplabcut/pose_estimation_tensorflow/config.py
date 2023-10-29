@@ -29,17 +29,18 @@ def _merge_a_into_b(a, b):
         #    raise KeyError('{} is not a valid config key'.format(k))
 
         # recursively merge dicts
-        if isinstance(v, dict):
-            if not b.get(k, False):
-                b[k] = v
-            else:
-                try:
-                    _merge_a_into_b(a[k], b[k])
-                except:
-                    print("Error under config key: {}".format(k))
-                    raise
-        else:
+        if (
+            isinstance(v, dict)
+            and not b.get(k, False)
+            or not isinstance(v, dict)
+        ):
             b[k] = v
+        else:
+            try:
+                _merge_a_into_b(a[k], b[k])
+            except:
+                print(f"Error under config key: {k}")
+                raise
 
 
 def cfg_from_file(filename):
@@ -51,7 +52,7 @@ def cfg_from_file(filename):
 
     # Update the snapshot path to the corresponding path!
     trainpath = str(filename).split("pose_cfg.yaml")[0]
-    yaml_cfg["snapshot_prefix"] = trainpath + "snapshot"
+    yaml_cfg["snapshot_prefix"] = f"{trainpath}snapshot"
     # the default is: "./snapshot"
 
     # reloading defaults, as they can bleed over from a previous run otherwise

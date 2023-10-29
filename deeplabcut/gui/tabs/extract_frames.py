@@ -55,8 +55,7 @@ def select_cropping_area(config, videos=None):
 
     for video in videos:
         fc = FrameCropper(video)
-        coords = fc.draw_bbox()
-        if coords:
+        if coords := fc.draw_bbox():
             temp = {
                 "crop": ", ".join(
                     map(

@@ -83,7 +83,7 @@ class SpatiotemporalAdaptation:
         self.scale_list = scale_list
         self.videotype = videotype
         vname = str(Path(self.video_path).stem)
-        self.adapt_modelprefix = vname + "_video_adaptation"
+        self.adapt_modelprefix = f"{vname}_video_adaptation"
         self.adapt_iterations = adapt_iterations
         self.modelfolder = modelfolder
         self.init_weights = init_weights
@@ -160,7 +160,7 @@ class SpatiotemporalAdaptation:
         """
 
         # looking for the pseudo label path
-        DLCscorer = "DLC_" + Path(self.init_weights).stem
+        DLCscorer = f"DLC_{Path(self.init_weights).stem}"
         vname = str(Path(self.video_path).stem)
         video_root = Path(self.video_path).parent
 
