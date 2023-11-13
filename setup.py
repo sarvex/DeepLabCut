@@ -50,7 +50,7 @@ setuptools.setup(
     extras_require={
         "gui": [
             "pyside6<6.3.2",
-            "qdarkstyle==3.1",
+            "qdarkstyle==3.2.1",
             "napari-deeplabcut>=0.2.1.2",
         ],
         "openvino": ["openvino-dev==2023.1.0"],
