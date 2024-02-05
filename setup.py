@@ -40,7 +40,7 @@ setuptools.setup(
         "scipy>=1.9",
         "statsmodels>=0.11",
         "tables>=3.7.0",
-        "torch<=1.12",
+        "torch<=2.2.0",
         "tensorpack>=0.11",
         "tf_slim>=1.1.0",
         "tqdm",
